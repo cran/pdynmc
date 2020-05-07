@@ -46,9 +46,9 @@ pdynmc(
   w.mat = "iid.err",
   w.mat.stata = FALSE,
   std.err = "corrected",
-  estimation = "twostep",
-  max.iter = NULL,
-  iter.tol = NULL,
+  estimation = "iterative",
+  max.iter = 100,
+  iter.tol = 0.01,
   inst.thresh = NULL,
   opt.meth = "BFGS",
   hessian = FALSE,
@@ -253,8 +253,9 @@ starting values with uniform density (defaults to 1; ignored if
 to 42; required if custom.start.val is set to `FALSE`).}
 }
 \value{
-An object of class `c("list","pdynmc)` with the following elements:
+An object of class `pdynmc` with the following elements:
 
+\item{coefficients}{a vector containing the coefficient estimates}
 \item{data}{a list of elements on which computation of the model fit is based}
 \item{dep.clF}{a list of vectors containing the dependent variable for the
    cross-sectional observations}
@@ -271,10 +272,10 @@ An object of class `c("list","pdynmc)` with the following elements:
    from the closed form for the estimation steps}
 \item{iter}{a scalar denoting the number of iteration steps carried out to
    obtain parameter estimates}
-\item{fitted}{a list for each estimation step that contains a list of vectors
-   of fitted values for each cross-sectional observation}
-\item{resid}{a list for each estimation step that contains a list of vectors of
-   residuals for each cross-sectional observation}
+\item{fitted.values}{a list for each estimation step that contains a list of
+   vectors of fitted values for each cross-sectional observation}
+\item{residuals}{a list for each estimation step that contains a list of vectors
+   of residuals for each cross-sectional observation}
 \item{vcov}{a list of matrices containing the variance covariance matrix of the
    parameter estimates for each estimation step}
 \item{stderr}{a list of vectors containing the standard errors of the parameter
@@ -284,8 +285,9 @@ An object of class `c("list","pdynmc)` with the following elements:
 \item{pvalue}{a list of vectors containing the p-values for the parameter
    estimates for each estimation step}
 
-It has `fitted`, `residuals`, `wmat`, `vcov`, `summary`, and `print.summary`
-   methods.
+It has `case.names`, `coef`, `dum.coef`, `fitted`, `model.matrix`, `ninst`,
+   `nobs`, `optimIn`, `plot`, `print`,`residuals`, `summary`, `variable.names`,
+   `vcov`, and `wmat` methods.
 }
 \description{
 The pdynmc package provides three categories of functions that are available
@@ -327,79 +329,95 @@ The function estimates a linear dynamic panel data model of the form
 }
 \examples{
 ## Load data from plm package
-data(EmplUK, package = "plm")
-dat <- EmplUK
-dat[,c(4:7)] <- log(dat[,c(4:7)])
-dat <- dat[c(1:140), ]
+if(!requireNamespace("plm", quietly = TRUE)){
+ stop("Dataset from package \"plm\" needed for this example.
+ Please install the package.", call. = FALSE)
+} else{
+ data(EmplUK, package = "plm")
+ dat <- EmplUK
+ dat[,c(4:7)] <- log(dat[,c(4:7)])
+ dat <- dat[c(1:140), ]
 
 ## Code example
-pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-   use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-   include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-   fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-   varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-   include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-   w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-   opt.meth = "none")
+ m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+         use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+         include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+         fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+         varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+         include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+         w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+         opt.meth = "none")
+ summary(m1)
+}
 
 \donttest{
 ## Load data from plm package
-data(EmplUK, package = "plm")
-dat <- EmplUK
-dat[,c(4:7)] <- log(dat[,c(4:7)])
+if(!requireNamespace("plm", quietly = TRUE)){
+ stop("Dataset from package \"plm\" needed for this example.
+ Please install the package.", call. = FALSE)
+} else{
+ data(EmplUK, package = "plm")
+ dat <- EmplUK
+ dat[,c(4:7)] <- log(dat[,c(4:7)])
 
 ## Arellano and Bond (1991) estimation in Table 4, column (a1)
-pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-   use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-   include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-   fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-   varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-   include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-   w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-   opt.meth = "none")
+ m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+         use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+         include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+         fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+         varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+         include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+         w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+         opt.meth = "none")
+ summary(m1)
 
 ## Arellano and Bond (1991) estimation in Table 4, column (a2)
-pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-   use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-   include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-   fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-   varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-   include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-   w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
-   opt.meth = "none")
+ m2 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+         use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+         include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+         fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+         varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+         include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+         w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
+         opt.meth = "none")
+ summary(m2)
 
 ## Arellano and Bond (1991) twostep estimation extended by nonlinear moment
 ## conditions
-pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-   use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = TRUE,
-   include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-   fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-   varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-   include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-   w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
-   opt.meth = "BFGS")
+ m3 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+         use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = TRUE,
+         include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+         fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+         varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+         include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+         w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
+         opt.meth = "BFGS")
+ summary(m3)
 
 ## Arellano and Bond (1991) iterative estimation extended by nonlinear moment
 ## conditions
-pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-   use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = TRUE,
-   include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-   fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-   varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-   include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-   w.mat = "iid.err", std.err = "corrected", estimation = "iterative",
-   max.iter = 4, opt.meth = "BFGS")
+ m4 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+         use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = TRUE,
+         include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+         fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+         varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+         include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+         w.mat = "iid.err", std.err = "corrected", estimation = "iterative",
+         max.iter = 4, opt.meth = "BFGS")
+ summary(m4)
 
 ## Arellano and Bond (1991) twostep estimation extended by linear moment
 ## conditions from equations in levels
-pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-   use.mc.diff = TRUE, use.mc.lev = TRUE, use.mc.nonlin = FALSE,
-   include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-   fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-   varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-   include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-   w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
-   opt.meth = "none")
+ m5 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+         use.mc.diff = TRUE, use.mc.lev = TRUE, use.mc.nonlin = FALSE,
+         include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+         fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+         varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+         include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+         w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
+         opt.meth = "none")
+ summary(m5)
+}
 }
 
 

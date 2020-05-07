@@ -44,14 +44,14 @@
 
 
 
-#' Wald test.
+#' Wald Test.
 #'
 #' \code{wald.fct} computes F test statistics and corresponding p-values for
 #'    `pdynmc` objects.
 #'
-#' The three available null hypothesis are: All time dummies are zero jointly,
-#'    all slope coefficients are zero jointly, all times dummies and slope
-#'    coefficients are zero jointly.
+#' The three available null hypothesis are: All time dummies are jointly zero,
+#'    all slope coefficients are jointly zero, all times dummies and slope
+#'    coefficients are jointly zero.
 #'
 #' @param param A character string that denotes the null hypothesis. Choices are
 #'    time.dum (i.e., all time dummies are jointly zero), slope (i.e., all slope
@@ -75,38 +75,48 @@
 #'
 #' @examples
 #' ## Load data from plm package
-#' data(EmplUK, package = "plm")
-#' dat <- EmplUK
-#' dat[,c(4:7)] <- log(dat[,c(4:7)])
-#' dat <- dat[c(140:0), ]
+#' if(!requireNamespace("plm", quietly = TRUE)){
+#'  stop("Dataset from package \"plm\" needed for this example.
+#'  Please install the package.", call. = FALSE)
+#' } else{
+#'  data(EmplUK, package = "plm")
+#'  dat <- EmplUK
+#'  dat[,c(4:7)] <- log(dat[,c(4:7)])
+#'  dat <- dat[c(140:0), ]
 #'
 #' ## Code example
-#' m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-#'    opt.meth = "none")
-#' wald.fct(param = "all", m1)
+#'  m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'     use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+#'     include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'     fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'     varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'     include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'     w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+#'     opt.meth = "none")
+#'  wald.fct(param = "all", m1)
+#' }
 #'
 #' \donttest{
 #' ## Load data from plm package
-#' data(EmplUK, package = "plm")
-#' dat <- EmplUK
-#' dat[,c(4:7)] <- log(dat[,c(4:7)])
+#' if(!requireNamespace("plm", quietly = TRUE)){
+#'  stop("Dataset from package \"plm\" needed for this example.
+#'  Please install the package.", call. = FALSE)
+#' } else{
+#'  data(EmplUK, package = "plm")
+#'  dat <- EmplUK
+#'  dat[,c(4:7)] <- log(dat[,c(4:7)])
 #'
 #' ## Further code example
-#' m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-#'    opt.meth = "none")
-#' wald.fct(param = "all", m1)
+#'  m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'     use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+#'     include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'     fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'     varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'     include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'     w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+#'     opt.meth = "none")
+#'  wald.fct(param = "all", m1)
+#' }
 #' }
 #'
 #'
@@ -115,7 +125,9 @@ wald.fct 		<- function(
  ,object
 ){
 
-  if(all(class(object) != "pdynmc")) stop("Object needs to be of class 'pdynmc'")
+  if(!inherits(object, what = "pdynmc")){
+    stop("Use only with \"pdynmc\" objects.")
+  }
 
   coef.est				<- ifelse((sapply(get(paste("step", object$iter, sep = ""), object$par.optim), FUN = is.na)),
 						yes = get(paste("step", object$iter, sep = ""), object$par.clForm),
@@ -134,7 +146,15 @@ wald.fct 		<- function(
 
 
   K.tot		<- length(coef.est)
-  K.t			<- length(varname.dum)
+  if(length(varname.dum) > 1){
+    K.t			<- length(varname.dum)
+  } else{
+    if(varname.dum == "no time dummies"){
+      K.t     <- 0
+    } else{
+      K.t     <- 1
+    }
+  }
 
   if(param == "time.dum"){
     start		<- K.tot - K.t + 1
@@ -166,7 +186,7 @@ wald.fct 		<- function(
   names(dof)	<- "df"
   pval		<- stats::pchisq(w.stat, df = dof, lower.tail = FALSE)
   wald		<- list(statistic = w.stat, p.value = pval, parameter = dof, method = "Wald test"
-				,data.name = paste(object$iter, "step GMM Estimation; H0: ", param, " parameters are zero jointly", sep = "")
+				,data.name = paste(object$iter, "step GMM Estimation; H0: ", param, " parameters are jointly zero", sep = "")
 				)
   class(wald) <- "htest"
   return(wald)
@@ -222,8 +242,7 @@ wald.fct 		<- function(
 
 
 
-
-#' Hansen J test.
+#' Hansen J-Test.
 #'
 #' \code{jtest.fct} tests the validity of the overidentifying restrictions.
 #'
@@ -235,7 +254,7 @@ wald.fct 		<- function(
 #'    the test statistic is weakened by many instruments.
 #'
 #' @param object An object of class `pdynmc`.
-#' @return An object of class `htest` which contains the Hansen J test statistic
+#' @return An object of class `htest` which contains the Hansen J-test statistic
 #'    and corresponding p-value for the null hypothesis that the overidentifying
 #'    restrictions are valid.
 #'
@@ -255,38 +274,48 @@ wald.fct 		<- function(
 #'
 #' @examples
 #' ## Load data from plm package
-#' data(EmplUK, package = "plm")
-#' dat <- EmplUK
-#' dat[,c(4:7)] <- log(dat[,c(4:7)])
-#' dat <- dat[c(140:0), ]
+#' if(!requireNamespace("plm", quietly = TRUE)){
+#'  stop("Dataset from package \"plm\" needed for this example.
+#'  Please install the package.", call. = FALSE)
+#' } else{
+#'  data(EmplUK, package = "plm")
+#'  dat <- EmplUK
+#'  dat[,c(4:7)] <- log(dat[,c(4:7)])
+#'  dat <- dat[c(140:0), ]
 #'
 #' ## Code example
-#' m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-#'    opt.meth = "none")
-#' jtest.fct(m1)
+#'  m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'     use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+#'     include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'     fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'     varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'     include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'     w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+#'     opt.meth = "none")
+#'  jtest.fct(m1)
+#' }
 #'
 #' \donttest{
 #' ## Load data from plm package
-#' data(EmplUK, package = "plm")
-#' dat <- EmplUK
-#' dat[,c(4:7)] <- log(dat[,c(4:7)])
+#' if(!requireNamespace("plm", quietly = TRUE)){
+#'  stop("Dataset from package \"plm\" needed for this example.
+#'  Please install the package.", call. = FALSE)
+#' } else{
+#'  data(EmplUK, package = "plm")
+#'  dat <- EmplUK
+#'  dat[,c(4:7)] <- log(dat[,c(4:7)])
 #'
 #' ## Further code example
-#' m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-#'    opt.meth = "none")
-#' jtest.fct(m1)
+#'  m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'     use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+#'     include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'     fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'     varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'     include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'     w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+#'     opt.meth = "none")
+#'  jtest.fct(m1)
+#' }
 #' }
 #'
 #'
@@ -294,14 +323,15 @@ jtest.fct		<- function(
  object
 ){
 
-  if(all(class(object) != "pdynmc")) stop("Object needs to be of class 'pdynmc'")
+  if(!inherits(object, what = "pdynmc")){
+    stop("Use only with \"pdynmc\" objects.")
+  }
 
   coef.est		<- ifelse((sapply(get(paste("step", object$iter, sep = ""), object$par.optim), FUN = is.na)), yes = get(paste("step", object$iter, sep = ""), object$par.clForm), no = get(paste("step", object$iter, sep = ""), object$par.optim) )
   Szero.j		<- get(paste("step", object$iter, sep = ""), object$residuals)
   Z.temp		<- object$data$Z
   W.j			<- get(paste("step", object$iter, sep = ""), object$w.mat)
   n.inst		<- object$data$n.inst
-
 
 
   K.tot			<- length(coef.est)
@@ -349,7 +379,7 @@ jtest.fct		<- function(
 
 
 
-#' Arellano and Bond serial correlation test.
+#' Arellano and Bond Serial Correlation Test.
 #'
 #' \code{mtest.fct} tests for serial correlation in the error terms.
 #'
@@ -381,38 +411,48 @@ jtest.fct		<- function(
 #'
 #' @examples
 #' ## Load data from plm package
-#' data(EmplUK, package = "plm")
-#' dat <- EmplUK
-#' dat[,c(4:7)] <- log(dat[,c(4:7)])
-#' dat <- dat[c(140:0), ]
+#' if(!requireNamespace("plm", quietly = TRUE)){
+#'  stop("Dataset from package \"plm\" needed for this example.
+#'  Please install the package.", call. = FALSE)
+#' } else{
+#'  data(EmplUK, package = "plm")
+#'  dat <- EmplUK
+#'  dat[,c(4:7)] <- log(dat[,c(4:7)])
+#'  dat <- dat[c(140:0), ]
 #'
 #' ## Code example
-#' m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-#'    opt.meth = "none")
-#' mtest.fct(m1, t.order = 2)
+#'  m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'     use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+#'     include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'     fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'     varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'     include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'     w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+#'     opt.meth = "none")
+#'  mtest.fct(m1, t.order = 2)
+#' }
 #'
 #' \donttest{
 #' ## Load data from plm package
-#' data(EmplUK, package = "plm")
-#' dat <- EmplUK
-#' dat[,c(4:7)] <- log(dat[,c(4:7)])
+#' if(!requireNamespace("plm", quietly = TRUE)){
+#'  stop("Dataset from package \"plm\" needed for this example.
+#'  Please install the package.", call. = FALSE)
+#' } else{
+#'  data(EmplUK, package = "plm")
+#'  dat <- EmplUK
+#'  dat[,c(4:7)] <- log(dat[,c(4:7)])
 #'
 #' ## Further code example
-#' m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-#'    opt.meth = "none")
-#' mtest.fct(m1, t.order = 2)
+#'  m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'     use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+#'     include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'     fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'     varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'     include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'     w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+#'     opt.meth = "none")
+#'  mtest.fct(m1, t.order = 2)
+#' }
 #' }
 #'
 #'
@@ -421,7 +461,9 @@ mtest.fct 		<- function(
  ,t.order
 ){
 
-  if(all(class(object) != "pdynmc")) stop("Object needs to be of class 'pdynmc'")
+  if(!inherits(object, what = "pdynmc")){
+    stop("Use only with \"pdynmc\" objects.")
+  }
 
   estimation	<- object$data$estimation
   Szero.j			<- get(paste("step", object$iter, sep = ""), object$residuals)

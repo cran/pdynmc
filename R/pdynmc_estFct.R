@@ -216,8 +216,9 @@
 #'    `custom.start.val` is set to `TRUE`).
 #' @param seed.input An integer used as seed for drawing starting values (defaults
 #'    to 42; required if custom.start.val is set to `FALSE`).
-#' @return An object of class `c("list","pdynmc)` with the following elements:
+#' @return An object of class `pdynmc` with the following elements:
 #'
+#' \item{coefficients}{a vector containing the coefficient estimates}
 #' \item{data}{a list of elements on which computation of the model fit is based}
 #' \item{dep.clF}{a list of vectors containing the dependent variable for the
 #'    cross-sectional observations}
@@ -234,10 +235,10 @@
 #'    from the closed form for the estimation steps}
 #' \item{iter}{a scalar denoting the number of iteration steps carried out to
 #'    obtain parameter estimates}
-#' \item{fitted}{a list for each estimation step that contains a list of vectors
-#'    of fitted values for each cross-sectional observation}
-#' \item{resid}{a list for each estimation step that contains a list of vectors of
-#'    residuals for each cross-sectional observation}
+#' \item{fitted.values}{a list for each estimation step that contains a list of
+#'    vectors of fitted values for each cross-sectional observation}
+#' \item{residuals}{a list for each estimation step that contains a list of vectors
+#'    of residuals for each cross-sectional observation}
 #' \item{vcov}{a list of matrices containing the variance covariance matrix of the
 #'    parameter estimates for each estimation step}
 #' \item{stderr}{a list of vectors containing the standard errors of the parameter
@@ -247,13 +248,13 @@
 #' \item{pvalue}{a list of vectors containing the p-values for the parameter
 #'    estimates for each estimation step}
 #'
-#' It has `fitted`, `residuals`, `wmat`, `vcov`, `summary`, and `print.summary`
-#'    methods.
+#' It has `case.names`, `coef`, `dum.coef`, `fitted`, `model.matrix`, `ninst`,
+#'    `nobs`, `optimIn`, `plot`, `print`,`residuals`, `summary`, `variable.names`,
+#'    `vcov`, and `wmat` methods.
 #'
 #' @author Markus Fritsch
 #' @export
 #' @importFrom data.table shift
-#' @importFrom dplyr left_join
 #' @importFrom MASS ginv
 #' @importFrom Matrix crossprod
 #' @importFrom Matrix Diagonal
@@ -281,79 +282,95 @@
 #'
 #' @examples
 #' ## Load data from plm package
-#' data(EmplUK, package = "plm")
-#' dat <- EmplUK
-#' dat[,c(4:7)] <- log(dat[,c(4:7)])
-#' dat <- dat[c(1:140), ]
+#' if(!requireNamespace("plm", quietly = TRUE)){
+#'  stop("Dataset from package \"plm\" needed for this example.
+#'  Please install the package.", call. = FALSE)
+#' } else{
+#'  data(EmplUK, package = "plm")
+#'  dat <- EmplUK
+#'  dat[,c(4:7)] <- log(dat[,c(4:7)])
+#'  dat <- dat[c(1:140), ]
 #'
 #' ## Code example
-#' pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-#'    opt.meth = "none")
+#'  m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'          use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+#'          include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'          fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'          varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'          include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'          w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+#'          opt.meth = "none")
+#'  summary(m1)
+#' }
 #'
 #' \donttest{
 #' ## Load data from plm package
-#' data(EmplUK, package = "plm")
-#' dat <- EmplUK
-#' dat[,c(4:7)] <- log(dat[,c(4:7)])
+#' if(!requireNamespace("plm", quietly = TRUE)){
+#'  stop("Dataset from package \"plm\" needed for this example.
+#'  Please install the package.", call. = FALSE)
+#' } else{
+#'  data(EmplUK, package = "plm")
+#'  dat <- EmplUK
+#'  dat[,c(4:7)] <- log(dat[,c(4:7)])
 #'
 #' ## Arellano and Bond (1991) estimation in Table 4, column (a1)
-#' pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-#'    opt.meth = "none")
+#'  m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'          use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+#'          include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'          fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'          varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'          include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'          w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+#'          opt.meth = "none")
+#'  summary(m1)
 #'
 #' ## Arellano and Bond (1991) estimation in Table 4, column (a2)
-#' pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
-#'    opt.meth = "none")
+#'  m2 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'          use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+#'          include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'          fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'          varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'          include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'          w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
+#'          opt.meth = "none")
+#'  summary(m2)
 #'
 #' ## Arellano and Bond (1991) twostep estimation extended by nonlinear moment
 #' ## conditions
-#' pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = TRUE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
-#'    opt.meth = "BFGS")
+#'  m3 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'          use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = TRUE,
+#'          include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'          fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'          varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'          include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'          w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
+#'          opt.meth = "BFGS")
+#'  summary(m3)
 #'
 #' ## Arellano and Bond (1991) iterative estimation extended by nonlinear moment
 #' ## conditions
-#' pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = TRUE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "iterative",
-#'    max.iter = 4, opt.meth = "BFGS")
+#'  m4 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'          use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = TRUE,
+#'          include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'          fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'          varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'          include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'          w.mat = "iid.err", std.err = "corrected", estimation = "iterative",
+#'          max.iter = 4, opt.meth = "BFGS")
+#'  summary(m4)
 #'
 #' ## Arellano and Bond (1991) twostep estimation extended by linear moment
 #' ## conditions from equations in levels
-#' pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-#'    use.mc.diff = TRUE, use.mc.lev = TRUE, use.mc.nonlin = FALSE,
-#'    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-#'    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-#'    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-#'    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-#'    w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
-#'    opt.meth = "none")
+#'  m5 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#'          use.mc.diff = TRUE, use.mc.lev = TRUE, use.mc.nonlin = FALSE,
+#'          include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+#'          fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+#'          varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+#'          include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+#'          w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
+#'          opt.meth = "none")
+#'  summary(m5)
+#' }
 #' }
 #'
 #'
@@ -414,9 +431,9 @@ pdynmc		<- function(
 
  ,std.err				= "corrected"
 
- ,estimation			= "twostep"
- ,max.iter				= NULL
- ,iter.tol				= NULL
+ ,estimation			= "iterative"
+ ,max.iter				= 100
+ ,iter.tol				= 0.01
  ,inst.thresh			= NULL
  ,opt.meth				= "BFGS"
  ,hessian				= FALSE
@@ -441,14 +458,7 @@ pdynmc		<- function(
    max.iter			<- j.max
  }
  if(estimation == "iterative"){
-   if(!(is.null(max.iter))){
-     j.max			<- max.iter
-   } else{
-     j.max			<- 100
-   }
-   if(is.null(iter.tol)){
-     iter.tol		<- 0.01
-   }
+   j.max			<- max.iter
  }
 # if(estimation == "cue"){
 #   if(!(is.null(max.iter))){
@@ -494,6 +504,12 @@ pdynmc		<- function(
 
 
 
+ if((use.mc.diff | use.mc.lev) && (length(unique(dat[, varname.t])) < 3)){
+   stop("Insufficient number of time periods to derive linear moment conditions.")
+ }
+ if(use.mc.nonlin && (length(unique(dat[, varname.t])) < 4)){
+   stop("Insufficient number of time periods to derive nonlinear moment conditions.")
+ }
 
 
 
@@ -520,6 +536,32 @@ pdynmc		<- function(
  ){
    suppressWarnings(rm(varname.reg.fur))
    warning("Further controls given, while further controls are not supposed to be included; argument specifying the further controls was therefore ignored.")
+ }
+
+ if(fur.con){
+   if((is.null(fur.con.diff) & is.null(fur.con.lev)) | (!fur.con.diff & !fur.con.lev)){
+     fur.con.diff		<- FALSE
+     fur.con.lev		<- TRUE
+     warning("Options 'fur.con.diff' and 'fur.con.lev' not specified; 'fur.con.lev' was therefore set to TRUE.")
+   }
+   if(fur.con.diff & is.null(fur.con.lev)){
+     fur.con.lev		<- FALSE
+     warning("Option 'fur.con.lev' not specified; option was therefore set to FALSE.")
+   }
+   if(fur.con.lev & is.null(fur.con.diff)){
+     fur.con.diff	<- FALSE
+     warning("Option 'fur.con.diff' not specified; option was therefore set to FALSE.")
+   }
+ }
+ if(!fur.con && (fur.con.diff | fur.con.lev)){
+   if(fur.con.diff){
+     fur.con.diff <- FALSE
+     warning("No dummies included; argument 'fur.con.diff' was therefore ignored")
+   }
+   if(fur.con.lev){
+     fur.con.lev <- FALSE
+     warning("No dummies included; argument 'fur.con.lev' was therefore ignored")
+   }
  }
 
 
@@ -554,14 +596,14 @@ pdynmc		<- function(
    warning("No dummies given; 'include.dum' was therefore set to FALSE.")
  }
 
- if(!(include.dum) && (is.null(varname.dum))
+ if(!include.dum && !(is.null(varname.dum))
  ){
    suppressWarnings(rm(varname.dum))
    warning("Dummies given, while dummies are not supposed to be included; argument specifying the dummies was therefore ignored.")
  }
 
  if(include.dum){
-   if((is.null(dum.diff) & is.null(dum.lev)) | (!(dum.diff) & !(dum.lev))){
+   if((is.null(dum.diff) & is.null(dum.lev)) | (!dum.diff & !dum.lev)){
      dum.diff		<- FALSE
      dum.lev		<- TRUE
      warning("Options 'dum.diff' and 'dum.lev' not specified; 'dum.lev' was therefore set to TRUE.")
@@ -575,6 +617,19 @@ pdynmc		<- function(
      warning("Option 'dum.diff' not specified; option was therefore set to FALSE.")
    }
  }
+ if(!include.dum && (dum.diff | dum.lev)){
+   if(dum.diff){
+     dum.diff <- FALSE
+     warning("No dummies included; argument 'dum.diff' was therefore ignored")
+   }
+   if(dum.lev){
+     dum.lev <- FALSE
+     warning("No dummies included; argument 'dum.lev' was therefore ignored")
+   }
+ }
+
+
+
 
 
 
@@ -625,7 +680,7 @@ pdynmc		<- function(
  dat_b[, varname.t]	<- rep(x = t_cases, times = length(i_cases))
 
 
- dat				<- dplyr::left_join(x = dat_b, y = dat, by = c(varname.i, varname.t), all.x = TRUE)
+ dat				<- merge(x = dat_b, y = dat, by = c(varname.i, varname.t), all.x = TRUE)
  dat				<- dat[order(dat[, varname.i], dat[, varname.t], decreasing = FALSE), ]
 
  dat.na			<- dat
@@ -685,7 +740,7 @@ pdynmc		<- function(
    }
 
 
-   D.add	<- stats::model.matrix(form.dum.temp, data = dat)
+   D.add	<- stats::model.matrix(form.dum.temp, data = dat)[,-1]
 
    adjust.colnames.fct	<- function(
    j
@@ -697,6 +752,8 @@ pdynmc		<- function(
 
 
    colnames(D.add)		<- colnames.dum
+
+#   colnames.dum   <- colnames(D.add)
 
    dat_add				<- matrix(NA, ncol = ncol(D.add), nrow = nrow(dat))
    colnames(dat_add)		<- colnames.dum
@@ -768,6 +825,8 @@ pdynmc		<- function(
 
 
 
+ }else{
+   colnames.dum   <- NULL
  }
 
 
@@ -937,7 +996,7 @@ pdynmc		<- function(
 
 
 
- if(include.y){
+# if(include.y){
    if(lagTerms.y > 0){
      varname.reg.estParam.y				<- do.call(what = "varname.expand", args = list(varname = varname.y, lagTerms = lagTerms.y) )
      if(length(varname.reg.estParam.y) == 1){
@@ -946,7 +1005,7 @@ pdynmc		<- function(
        dat.na[, varname.reg.estParam.y]		<- mapply(lagTerms = rep(c(1:lagTerms.y), each = length(i_cases)), i = i_cases, varname = varname.y, FUN = dat.na.lag)
      }
    }
- }
+# }
 
  if(include.x){
    if(!(is.null(varname.reg.end))){
@@ -1020,13 +1079,15 @@ pdynmc		<- function(
 								varname = do.call(what = "c", args = list(do.call(what = "c", args = mapply(varname.reg.fur, FUN = rep, each = (lagTerms.reg.fur+1)*length(i_cases), SIMPLIFY = FALSE))) ),
 								FUN = dat.na.lag)
    }
+ } else{
+   varname.reg.estParam.fur <- NULL
  }
 
  varname.reg.estParam		 <- c(if(exists("varname.reg.estParam.y")) as.vector(varname.reg.estParam.y)			# [M:] covariates (besides the lagged dependent variable) for which to estimate parameters
 						,if(exists("varname.reg.estParam.x.end")) as.vector(varname.reg.estParam.x.end)
 						,if(exists("varname.reg.estParam.x.pre")) as.vector(varname.reg.estParam.x.pre)
 						,if(exists("varname.reg.estParam.x.ex")) as.vector(varname.reg.estParam.x.ex)
-						,if(exists("varname.reg.estParam.fur")) as.vector(varname.reg.estParam.fur) )
+						,if(exists("varname.reg.estParam.fur") & !(is.null(varname.reg.estParam.fur))) as.vector(varname.reg.estParam.fur) )
 
 
 
@@ -1098,8 +1159,10 @@ pdynmc		<- function(
  resGMM$Z.temp		<- lapply(Z.obj, `[[`, 1)
 
  resGMM$diffMC		<- use.mc.diff
- resGMM$levMC		<- use.mc.lev
- resGMM$nlMC		<- use.mc.nonlin
+ resGMM$levMC		  <- use.mc.lev
+ resGMM$nlMC		  <- use.mc.nonlin
+ resGMM$varname.i <- varname.i
+ resGMM$varname.t <- varname.t
 
 
 
@@ -1108,7 +1171,7 @@ pdynmc		<- function(
    if((dum.lev & !(dum.diff)) | (dum.lev & dum.diff)){
      varname.reg.estParam	<- c(varname.reg.estParam, colnames.dum[colnames.dum %in% colnames.dum.Z])
    } else{
-     varname.reg.estParam	<- c(varname.reg.estParam, unlist(lapply(strsplit(x = colnames.dum.Z, split = "D."), FUN = `[[`, 2))[-1])
+     varname.reg.estParam	<- c(varname.reg.estParam, unlist(lapply(strsplit(x = colnames.dum.Z, split = "D."), FUN = `[[`, 2)))
    }
  }
 
@@ -1119,7 +1182,12 @@ pdynmc		<- function(
 
  resGMM$varname.y			<- varname.y
  resGMM$varnames.reg		<- varname.reg.estParam
- resGMM$varnames.dum		<- colnames.dum[colnames.dum %in% varname.reg.estParam]
+ resGMM$varnames.fur.con <- if(fur.con){varname.reg.fur} else{ "no further controls"}
+ if(include.dum){
+   resGMM$varnames.dum		<- colnames.dum[colnames.dum %in% varname.reg.estParam]
+ } else{
+   resGMM$varnames.dum    <- "no time dummies"
+ }
 
  resGMM$estimation		<- estimation
  resGMM$opt.method		<- opt.meth
@@ -1201,7 +1269,7 @@ pdynmc		<- function(
 						,dum.diff = dum.diff, dum.lev = dum.lev, fur.con.diff = fur.con.diff, fur.con.lev = fur.con.lev
 						,Z.temp = resGMM$Z.temp, n = n, Time = Time, env = env
 #						,mc.ref.t = mc.ref.t
-						, max.lagTerms = max.lagTerms, ex.reg = ex.reg, pre.reg = pre.reg, n.inst = resGMM$n.inst, inst.thresh = inst.thresh)
+						, max.lagTerms = max.lagTerms, end.reg = end.reg, ex.reg = ex.reg, pre.reg = pre.reg, n.inst = resGMM$n.inst, inst.thresh = inst.thresh)
    resGMM.W.j[[j]]		<- W.j
    names(resGMM.W.j)[j]		<- paste("step", j, sep = "")
 
@@ -1250,11 +1318,15 @@ pdynmc		<- function(
 					,use.mc.diff = use.mc.diff, use.mc.lev = use.mc.lev, use.mc.nonlin = use.mc.nonlin
 					,dum.diff = dum.diff, dum.lev = dum.lev, fur.con.diff = fur.con.diff, fur.con.lev = fur.con.lev, max.lagTerms = max.lagTerms, Time = Time)
 
+   if(nrow(resGMM$Z.temp[[1]]) == 1){
+     dat.clF.temp		<- lapply(lapply(dat.temp, `[[`, 1), function(x) Matrix::t(x))
+     dep.temp			<- lapply(dat.temp, `[[`, 2)
+   } else{
+     dat.clF.temp		<- lapply(dat.temp, `[[`, 1)
+     dep.temp			<- lapply(dat.temp, `[[`, 2)
+   }
 
-   dat.clF.temp		<- lapply(dat.temp, `[[`, 1)
    dat.clF.temp.0		<- rapply(lapply(dat.clF.temp, FUN = as.matrix), function(x) ifelse(is.na(x), 0, x), how = "replace")
-
-   dep.temp			<- lapply(dat.temp, `[[`, 2)
    dep.temp.0		<- rapply(lapply(dep.temp, FUN = as.matrix), function(x) ifelse(is.na(x), 0, x), how = "replace")
 
 
@@ -1290,6 +1362,7 @@ pdynmc		<- function(
 #
 #   dat.clF.temp.0			<- rapply(lapply(dat.clF.temp, FUN = as.matrix), f = function(x) ifelse(is.na(x), 0, x), how = "replace")
 #   resGMM$dat.clF.temp.0	<- dat.clF.temp.0
+
 
    tZX				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, dat.clF.temp.0))
    tZY				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, dep.temp.0))
@@ -1329,7 +1402,14 @@ pdynmc		<- function(
    }
    names(resGMM.vcov.j)[j]	<- paste("step", j, sep = "")
 
-   resGMM.stderr.j[[j]]		<- sqrt(diag(as.matrix(get(paste("step", j, sep = "") , resGMM.vcov.j))))
+   if(sum(diag(as.matrix(get(paste("step", j, sep = "") , resGMM.vcov.j))) < 0) > 0){
+     neg.ent                <- which(diag(as.matrix(get(paste("step", j, sep = "") , resGMM.vcov.j))) < 0)
+     resGMM.stderr.j[[j]]		<- sqrt(abs(diag(as.matrix(get(paste("step", j, sep = "") , resGMM.vcov.j)))))
+     warning(paste("Covariance function contains ", length(neg.ent), " negative value(s); observation index(es): \n", paste(neg.ent, collapse = ", "), sep = ""))
+     rm(neg.ent)
+   } else{
+     resGMM.stderr.j[[j]]		<- sqrt(diag(as.matrix(get(paste("step", j, sep = "") , resGMM.vcov.j))))
+   }
    names(resGMM.stderr.j)[j]	<- paste("step", j, sep = "")
 
 
@@ -1456,7 +1536,7 @@ pdynmc		<- function(
 ###
 
 
-     resGMM.iter 	<- j
+#     resGMM.iter 	<- j
 
      if(opt.meth != "none"){
        if((j > 2) && ((j > j.max) | (sum(abs(as.numeric(get(paste("step", j, sep = "") , resGMM.par.opt.j)) - as.numeric(get(paste("step", j-1, sep = "") , resGMM.par.opt.j))))) < iter.tol) ) break
@@ -1467,6 +1547,9 @@ pdynmc		<- function(
 
  }
 
+ resGMM.iter    <- j
+ coefGMM        <- if(resGMM$opt.method == "none"){ get(paste("step", resGMM.iter, sep = ""), resGMM.clF.j)} else{get(paste("step", resGMM.iter, sep = ""), resGMM.par.opt.j)}
+ names(coefGMM) <- resGMM$varnames.reg
 
 # if(estimation == "cue"){
 #
@@ -1487,20 +1570,17 @@ pdynmc		<- function(
 # }
 
 
- fit 		<-  list(data = resGMM, dep.clF = dep.temp, dat.clF = dat.clF.temp, w.mat = resGMM.W.j, H_i = resGMM.H.i, par.optim = resGMM.par.opt.j, ctrl.optim = resGMM.ctrl.opt.j, par.clForm = resGMM.clF.j, iter = resGMM.iter,
-				fitted.values = resGMM.fitted.j, residuals = resGMM.Szero.j, vcov = resGMM.vcov.j, stderr = resGMM.stderr.j, zvalue = resGMM.zvalue.j, pvalue = resGMM.pvalue.j)
- class(fit)	<- "pdynmc"
+ fit 		<-  list(coefficients = coefGMM, residuals = resGMM.Szero.j, fitted.values = resGMM.fitted.j,
+   par.optim = resGMM.par.opt.j, ctrl.optim = resGMM.ctrl.opt.j, par.clForm = resGMM.clF.j, iter = resGMM.iter,
+   w.mat = resGMM.W.j, H_i = resGMM.H.i, vcov = resGMM.vcov.j, stderr = resGMM.stderr.j,
+   zvalue = resGMM.zvalue.j, pvalue = resGMM.pvalue.j,
+   data = resGMM, dep.clF = dep.temp, dat.clF = dat.clF.temp)
+ attr(fit, "class")  <- "pdynmc"
 
  return(fit)
 
 
 }
-
-
-
-
-
-
 
 
 

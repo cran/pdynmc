@@ -57,6 +57,7 @@ Wonestep.fct		<- function(
   ,Time
   # ,mc.ref.t
   ,max.lagTerms
+  ,end.reg
   ,ex.reg
   ,pre.reg
   ,n.inst
@@ -87,17 +88,17 @@ Wonestep.fct		<- function(
                            diag(x = 1, nrow = Time - max.lagTerms - 1, ncol = Time - max.lagTerms - 1)) )
     }
 
-    if(use.mc.lev){												# [M:] part of weighting matrix is identical for 'mc.ref.t' and 'mc.ref.T'
-      H_i.mcLev		<- diag(Time - max.lagTerms)
+    if(use.mc.lev | end.reg){												# [M:] part of weighting matrix is identical for 'mc.ref.t' and 'mc.ref.T'
+      H_i.mcLev		<- diag(Time - max(2,max.lagTerms))
     }
 
     if(dum.lev | fur.con.lev | ex.reg | pre.reg){
       H_i.mcLev		<- diag(Time - max.lagTerms)
     }
 
-    if(use.mc.lev & !(dum.lev | fur.con.lev)){
-      H_i.off		<- H_i.off
-    }
+#    if(use.mc.lev & (dum.diff | fur.con.diff) & !(dum.lev | fur.con.lev)){
+#      H_i.off		<- H_i.off
+#    }
 
     if(use.mc.nonlin){
       H_i.mcNL		<- diag(Time - max.lagTerms - 2)
@@ -832,7 +833,7 @@ sub.clForm.fct		<- function(
   }
   if(use.mc.lev | dum.lev | fur.con.lev){
     dat.temp_3lev					<- as.matrix(data.temp[-c(1:(max.lagTerms)), ]) *
-      ( diff(data.temp[, varname.y], differences = max(2,max.lagTerms)) * is.na(diff(data.temp[, varname.y], differences = max(2,max.lagTerms))) + 1 )
+      ( diff(data.temp[, varname.y], differences = max.lagTerms) * is.na(diff(data.temp[, varname.y], differences = max.lagTerms)) + 1 )
     colnames(dat.temp_3lev)			<- NULL
     rownames(dat.temp_3lev)			<- NULL
   }
@@ -890,8 +891,8 @@ dat.closedFormExpand.fct		<- function(
 ){
 
   varnames.temp	<- if( !(is.null(varname.reg.instr)) | !(is.null(varname.reg.toInstr)) ){
-    c(if(varname.reg.instr){ varname.reg.estParam[!(varname.reg.estParam %in% varname.reg.instr)] }
-      ,if(varname.reg.toInstr){ varname.reg.toInstr }, varname.y )
+    c(if(!(is.null(varname.reg.instr))){ varname.reg.estParam[!(varname.reg.estParam %in% varname.reg.instr)] }
+      ,if(!(is.null(varname.reg.toInstr))){ varname.reg.toInstr }, varname.y )
   } else{ c(varname.reg.estParam, varname.y) }
 
   data.temp		<- dat.na[dat.na[, varname.i] == i, varnames.temp]
@@ -902,6 +903,12 @@ dat.closedFormExpand.fct		<- function(
 
   return(dat.temp)
 }
+
+
+
+
+
+
 
 
 

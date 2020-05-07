@@ -2,7 +2,7 @@
 % Please edit documentation in R/pdynmc_specTestFcst.R
 \name{jtest.fct}
 \alias{jtest.fct}
-\title{Hansen J test.}
+\title{Hansen J-Test.}
 \usage{
 jtest.fct(object)
 }
@@ -10,7 +10,7 @@ jtest.fct(object)
 \item{object}{An object of class `pdynmc`.}
 }
 \value{
-An object of class `htest` which contains the Hansen J test statistic
+An object of class `htest` which contains the Hansen J-test statistic
    and corresponding p-value for the null hypothesis that the overidentifying
    restrictions are valid.
 }
@@ -27,38 +27,48 @@ The null hypothesis is that the overidentifying restrictions are valid.
 }
 \examples{
 ## Load data from plm package
-data(EmplUK, package = "plm")
-dat <- EmplUK
-dat[,c(4:7)] <- log(dat[,c(4:7)])
-dat <- dat[c(140:0), ]
+if(!requireNamespace("plm", quietly = TRUE)){
+ stop("Dataset from package \"plm\" needed for this example.
+ Please install the package.", call. = FALSE)
+} else{
+ data(EmplUK, package = "plm")
+ dat <- EmplUK
+ dat[,c(4:7)] <- log(dat[,c(4:7)])
+ dat <- dat[c(140:0), ]
 
 ## Code example
-m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-   use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-   include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-   fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-   varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-   include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-   w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-   opt.meth = "none")
-jtest.fct(m1)
+ m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+    opt.meth = "none")
+ jtest.fct(m1)
+}
 
 \donttest{
 ## Load data from plm package
-data(EmplUK, package = "plm")
-dat <- EmplUK
-dat[,c(4:7)] <- log(dat[,c(4:7)])
+if(!requireNamespace("plm", quietly = TRUE)){
+ stop("Dataset from package \"plm\" needed for this example.
+ Please install the package.", call. = FALSE)
+} else{
+ data(EmplUK, package = "plm")
+ dat <- EmplUK
+ dat[,c(4:7)] <- log(dat[,c(4:7)])
 
 ## Further code example
-m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
-   use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
-   include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
-   fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
-   varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
-   include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
-   w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
-   opt.meth = "none")
-jtest.fct(m1)
+ m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+    use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
+    include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
+    fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
+    varname.reg.fur = c("wage", "capital", "output"), lagTerms.reg.fur = c(1,2,2),
+    include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
+    w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
+    opt.meth = "none")
+ jtest.fct(m1)
+}
 }
 
 
