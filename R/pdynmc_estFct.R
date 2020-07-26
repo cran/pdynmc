@@ -493,7 +493,7 @@ pdynmc		<- function(
  toInstr.reg		<- !(is.null(varname.reg.toInstr))
 
 
- max.lagTerms		<- max(if(!(is.null(varname.y))){ lagTerms.y }, if(!(is.null(varname.reg.end))){ lagTerms.reg.end },
+ max.lagTerms		<- max(if(!(is.null(varname.y)) | !(is.null(lagTerms.y))){ lagTerms.y }, if(!(is.null(varname.reg.end))){ lagTerms.reg.end },
 				if(!(is.null(varname.reg.pre))){ lagTerms.reg.pre }, if(!(is.null(varname.reg.ex))){ lagTerms.reg.ex },
 				if(!(is.null(varname.reg.fur))){ lagTerms.reg.fur } )
 
@@ -556,11 +556,11 @@ pdynmc		<- function(
  if(!fur.con && (fur.con.diff | fur.con.lev)){
    if(fur.con.diff){
      fur.con.diff <- FALSE
-     warning("No dummies included; argument 'fur.con.diff' was therefore ignored")
+     warning("No further controls included; argument 'fur.con.diff' was therefore ignored")
    }
    if(fur.con.lev){
      fur.con.lev <- FALSE
-     warning("No dummies included; argument 'fur.con.lev' was therefore ignored")
+     warning("No further controls included; argument 'fur.con.lev' was therefore ignored")
    }
  }
 
@@ -853,7 +853,7 @@ pdynmc		<- function(
 
 #a) maximum number of lags available as instruments
 
- if(include.y & !(is.null(maxLags.y))){
+ if((include.y | !(is.null(lagTerms.y))) & !(is.null(maxLags.y))){
    if(maxLags.y + 2 > Time){				# [M:] maximum number of time periods of y_{it}- and x_{it}-process employed in estimation
      maxLags.y		<- Time-2
      warning(cat(paste(c("Longitudinal dimension too low. Maximum number of instruments from dependent variable to be employed in estimation",
@@ -1008,7 +1008,7 @@ pdynmc		<- function(
 # }
 
  if(include.x){
-   if(!(is.null(varname.reg.end))){
+   if(!(is.null(varname.reg.end)) & sum(!(varname.reg.end %in% varname.reg.instr)) > 0){
      varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.end[!(varname.reg.end %in% varname.reg.instr)]} else{ varname.reg.end }
      lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.end[!(varname.reg.end %in% varname.reg.instr)]} else{ lagTerms.reg.end }
      if(length(varname.reg.end) == 1){
@@ -1025,42 +1025,38 @@ pdynmc		<- function(
 									FUN = dat.na.lag)
      }
    }
-   if(!(is.null(varname.reg.pre))){
-     if(any(lagTerms.reg.pre > 0)){
-       varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.pre[!(varname.reg.pre %in% varname.reg.instr)] } else{ varname.reg.pre }
-       lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.pre[!(varname.reg.pre %in% varname.reg.instr)] } else{ lagTerms.reg.pre }
-       if(length(varname.reg.pre) == 1){
-         varname.reg.estParam.x.pre			<- as.vector(mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
-         dat.na[, varname.reg.estParam.x.pre]	<- as.vector(mapply(lagTerms = rep(mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand), each = length(i_cases)),
+   if(!(is.null(varname.reg.pre)) & sum(!(varname.reg.pre %in% varname.reg.instr)) > 0){
+     varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.pre[!(varname.reg.pre %in% varname.reg.instr)] } else{ varname.reg.pre }
+     lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.pre[!(varname.reg.pre %in% varname.reg.instr)] } else{ lagTerms.reg.pre }
+     if(length(varname.reg.pre) == 1){
+       varname.reg.estParam.x.pre			<- as.vector(mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
+       dat.na[, varname.reg.estParam.x.pre]	<- as.vector(mapply(lagTerms = rep(mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand), each = length(i_cases)),
 											i = rep(i_cases, times = length(varname.reg.estParam.x.pre)),
 											varname = mapply(varname.temp, FUN = rep, each = (lagTerms.reg.pre+1)*length(i_cases) ),
 										FUN = dat.na.lag))
-       } else{
-         varname.reg.estParam.x.pre			<- do.call(what = "c", args = mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
-         dat.na[, varname.reg.estParam.x.pre]	<- mapply(lagTerms = rep(do.call(what = "c", args = mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand)), each = length(i_cases)),
+     } else{
+       varname.reg.estParam.x.pre			<- do.call(what = "c", args = mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
+       dat.na[, varname.reg.estParam.x.pre]	<- mapply(lagTerms = rep(do.call(what = "c", args = mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand)), each = length(i_cases)),
 										i = rep(i_cases, times = length(varname.reg.estParam.x.pre)),
 										varname = do.call(what = "c", args = mapply(varname.temp, FUN = rep, each = (lagTerms.reg.pre+1)*length(i_cases)) ),
 									FUN = dat.na.lag)
-       }
      }
    }
-   if(!(is.null(varname.reg.ex))){
-     if(any(lagTerms.reg.ex > 0)){
-       varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.ex[!(varname.reg.ex %in% varname.reg.instr)] } else{ varname.reg.ex }
-       lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.ex[!(varname.reg.ex %in% varname.reg.instr)] } else{ lagTerms.reg.ex }
-       if(length(varname.reg.ex) == 1){
-         varname.reg.estParam.x.ex			<- as.vector(mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
-         dat.na[, varname.reg.estParam.x.ex]	<- as.vector(mapply(lagTerms = rep(mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand), each = length(i_cases)),
+   if(!(is.null(varname.reg.ex)) & sum(!(varname.reg.ex %in% varname.reg.instr)) > 0){
+     varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.ex[!(varname.reg.ex %in% varname.reg.instr)] } else{ varname.reg.ex }
+     lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.ex[!(varname.reg.ex %in% varname.reg.instr)] } else{ lagTerms.reg.ex }
+     if(length(varname.reg.ex) == 1){
+       varname.reg.estParam.x.ex			<- as.vector(mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
+       dat.na[, varname.reg.estParam.x.ex]	<- as.vector(mapply(lagTerms = rep(mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand), each = length(i_cases)),
 											i = rep(i_cases, times = length(varname.reg.estParam.x.ex)),
 											varname = mapply(varname.temp, FUN = rep, each = (lagTerms.reg.ex+1)*length(i_cases) ),
 										FUN = dat.na.lag))
-       } else{
-         varname.reg.estParam.x.ex			<- do.call(what = "c", args = mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
-         dat.na[, varname.reg.estParam.x.ex]	<- mapply(lagTerms = rep(do.call(what = "c", args = mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand)), each = length(i_cases)),
+     } else{
+       varname.reg.estParam.x.ex			<- do.call(what = "c", args = list(mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand)) )
+       dat.na[, varname.reg.estParam.x.ex]	<- mapply(lagTerms = rep(do.call(what = "c", args = list(mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand))), each = length(i_cases)),
 										i = rep(i_cases, times = length(varname.reg.estParam.x.ex)),
-										varname = do.call(what = "c", args = mapply(varname.temp, FUN = rep, each = (lagTerms.reg.ex+1)*length(i_cases)) ),
+										varname = do.call(what = "c", args = list(mapply(varname.temp, FUN = rep, each = (lagTerms.reg.ex+1)*length(i_cases)) )),
 									FUN = dat.na.lag)
-       }
      }
    }
  }
@@ -1149,7 +1145,7 @@ pdynmc		<- function(
 					,include.dum = include.dum, dum.diff = dum.diff, dum.lev = dum.lev, colnames.dum = colnames.dum
 					,fur.con = fur.con, fur.con.diff = fur.con.diff, fur.con.lev = fur.con.lev, varname.reg.estParam.fur = varname.reg.estParam.fur
    					,include.x = include.x, end.reg = end.reg, varname.reg.end = varname.reg.end, pre.reg = pre.reg, varname.reg.pre = varname.reg.pre, ex.reg = ex.reg, varname.reg.ex = varname.reg.ex
-					,maxLags.y = maxLags.y, max.lagTerms = max.lagTerms, maxLags.reg.end = maxLags.reg.end, maxLags.reg.pre = maxLags.reg.pre, maxLags.reg.ex = maxLags.reg.ex, dat = dat, dat.na = dat.na)
+					,maxLags.y = maxLags.y, lagTerms.y = lagTerms.y, max.lagTerms = max.lagTerms, maxLags.reg.end = maxLags.reg.end, maxLags.reg.pre = maxLags.reg.pre, maxLags.reg.ex = maxLags.reg.ex, dat = dat, dat.na = dat.na)
 
 
  resGMM$n.inst		<- apply(Reduce(f = rbind, x = lapply(Z.obj, `[[`, 3)), FUN = max, MARGIN = 2)
@@ -1177,7 +1173,7 @@ pdynmc		<- function(
 
 
  resGMM$dat.na			<- dat.na
- resGMM$n				<- n
+ resGMM$n				    <- n
  resGMM$Time				<- Time
 
  resGMM$varname.y			<- varname.y
@@ -1368,11 +1364,12 @@ pdynmc		<- function(
    tZY				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, dep.temp.0))
 
 #   tXZW1tZX.inv			<- solve(tcrossprod(crossprod(as.matrix(tZX), get(paste("step", j, sep = ""), resGMM.W.j)), t(as.matrix(tZX))))
-   tXZW1tZX.inv			<- MASS::ginv(as.matrix(Matrix::tcrossprod(Matrix::crossprod(tZX, get(paste("step", j, sep = ""), resGMM.W.j)), Matrix::t(tZX))) )
-   tXZW1tZY				<- Matrix::tcrossprod(Matrix::crossprod(tZX, get(paste("step", j, sep = ""), resGMM.W.j)), Matrix::t(tZY))
+   tXZW1tZX.inv			<- MASS::ginv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX)) ) )
+#   tXZW1tZY				<- Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZY))
+   tYZW1tZX				<- Matrix::crossprod(tZY, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))
 
    if(!(use.mc.nonlin)){
-     resGMM.clF.j[[j]]		<- as.numeric(Matrix::crossprod(Matrix::t(tXZW1tZX.inv), tXZW1tZY))
+     resGMM.clF.j[[j]]		<- as.numeric(Matrix::tcrossprod(tXZW1tZX.inv, tYZW1tZX))
    } else{
      resGMM.clF.j[[j]]		<- rep(NA, times = length(varname.reg.estParam))
    }
@@ -1395,7 +1392,7 @@ pdynmc		<- function(
    resGMM.n.obs			<- n.obs
 
    if(std.err == "unadjusted"){
-     resGMM.vcov.j[[j]]		<- tXZW1tZX.inv * (as.vector(crossprod(do.call(get(paste("step", j, sep = "") , resGMM.Szero.j), what = "c"), do.call(get(paste("step", j, sep = "") , resGMM.Szero.j), what = "c"), na.rm = TRUE) /(n.obs - length(varname.reg.estParam))))		# [M:] calculation acc. to description in Doornik, Arellano, and Bond (2012), p.30-31
+     resGMM.vcov.j[[j]]		<- tXZW1tZX.inv * (as.vector(Matrix::crossprod(do.call(get(paste("step", j, sep = "") , resGMM.Szero.j), what = "c"), do.call(get(paste("step", j, sep = "") , resGMM.Szero.j), what = "c"), na.rm = TRUE) /(n.obs - length(varname.reg.estParam))))		# [M:] calculation acc. to description in Doornik, Arellano, and Bond (2012), p.30-31
    }
    if(std.err == "corrected"){
      resGMM.vcov.j[[j]]		<- Matrix::tcrossprod(Matrix::crossprod(tXZW1tZX.inv, Matrix::tcrossprod(Matrix::tcrossprod(Matrix::crossprod(tZX, get(paste("step", j, sep = "") , resGMM.W.j)), MASS::ginv(get(paste("step", j+1, sep = "") , resGMM.W.j))), Matrix::tcrossprod(Matrix::t(tZX), get(paste("step", j, sep = "") , resGMM.W.j)))), tXZW1tZX.inv)
@@ -1466,11 +1463,12 @@ pdynmc		<- function(
        resGMM.ctrl.opt.j[[j]]		<- par.opt.j[-c(1:length(varname.reg.estParam))]
        names(resGMM.ctrl.opt.j)[j]	<- paste("step", j, sep = "")
 
-       tXZW2tZX.inv			<- MASS::ginv(as.matrix(Matrix::tcrossprod(Matrix::crossprod(tZX, get(paste("step", j, sep = ""), resGMM.W.j)), Matrix::t(tZX))) )
-       tXZW2tZY				<- Matrix::tcrossprod(Matrix::crossprod(tZX, get(paste("step", j, sep = ""), resGMM.W.j)), Matrix::t(tZY))
+       tXZW2tZX.inv			<- MASS::ginv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))) )
+#       tXZW2tZY				<- Matrix::tcrossprod(Matrix::crossprod(tZX, get(paste("step", j, sep = ""), resGMM.W.j)), Matrix::t(tZY))
+       tYZW2tZX				<- Matrix::crossprod(tZY, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))
 
        if(!(use.mc.nonlin)){
-         resGMM.clF.j[[j]]		<- as.numeric(Matrix::crossprod(Matrix::t(tXZW2tZX.inv), tXZW2tZY))
+         resGMM.clF.j[[j]]		<- as.numeric(Matrix::tcrossprod(tXZW2tZX.inv, tYZW2tZX))
        } else{
          resGMM.clF.j[[j]]		<- rep(NA, times = length(varname.reg.estParam))
        }
@@ -1485,7 +1483,7 @@ pdynmc		<- function(
        names(resGMM.Szero.j)[j]	<- paste("step", j, sep = "")
 
 
-       resGMM.vcov.j[[j]]		<- MASS::ginv(as.matrix(Matrix::tcrossprod(Matrix::crossprod(tZX, get(paste("step", j, sep = ""), resGMM.W.j)), Matrix::t(tZX) )))
+       resGMM.vcov.j[[j]]		<- MASS::ginv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX) ) ) )
        names(resGMM.vcov.j)[j]	<- paste("step", j, sep = "")
        resGMM.stderr.j[[j]]		<- sqrt(diag(as.matrix(get(paste("step", j, sep = ""), resGMM.vcov.j)) ))
        names(resGMM.stderr.j)[j]	<- paste("step", j, sep = "")
@@ -1501,12 +1499,12 @@ pdynmc		<- function(
 							 - z - t(z)						#[M:] Code line from R-code of 'vcovHC.pgmm'; '-z' multiplies all elements with (-1); '-t(z)' adds up the off-diagonal elements
 				}, dat.clF.temp.0, get(paste("step", j-1, sep = ""), resGMM.Szero.j), SIMPLIFY = FALSE)
          tZtux_kZ	<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x, Matrix::crossprod(y,x)), resGMM$Z.temp, x_ktu, SIMPLIFY = FALSE))
-         D_k	<- Matrix::crossprod((-1)*get(paste("step", j, sep = ""), resGMM.vcov.j), Matrix::crossprod(Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX), Matrix::tcrossprod(tZtux_kZ, Matrix::tcrossprod(Matrix::t(tZ.res2s), get(paste("step", j, sep = ""), resGMM.W.j)))))
+         D_k	<- Matrix::crossprod((-1)*get(paste("step", j, sep = ""), resGMM.vcov.j), Matrix::crossprod(Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX), Matrix::tcrossprod(tZtux_kZ, Matrix::tcrossprod(Matrix::t(tZ.res2s), get(paste("step", j, sep = ""), resGMM.W.j) ) ) ) )
          D		<- cbind(D, D_k)
        }
 
 
-       resGMM.vcov.j[[j]]		<- get(paste("step", j, sep = ""), resGMM.vcov.j) + Matrix::crossprod(Matrix::t(D), get(paste("step", j, sep = ""), resGMM.vcov.j)) + Matrix::t(Matrix::crossprod(Matrix::t(D), get(paste("step", j, sep = ""), resGMM.vcov.j))) + Matrix::tcrossprod(Matrix::tcrossprod(D, get(paste("step", 1, sep = ""), resGMM.vcov.j)), D)
+       resGMM.vcov.j[[j]]		<- get(paste("step", j, sep = ""), resGMM.vcov.j) + Matrix::tcrossprod(D, get(paste("step", j, sep = ""), resGMM.vcov.j)) + Matrix::tcrossprod(D, get(paste("step", j, sep = ""), resGMM.vcov.j)) + Matrix::tcrossprod(Matrix::tcrossprod(D, get(paste("step", 1, sep = ""), resGMM.vcov.j)), D)
        resGMM.stderr.j[[j]]		<- sqrt(diag(as.matrix(get(paste("step", j, sep = ""), resGMM.vcov.j))))
 
 

@@ -61,7 +61,7 @@ varname.i		<- "i"
 varname.t		<- "t"
 
 use.mc.diff      <- TRUE
-use.mc.lev       <- TRUE
+use.mc.lev       <- FALSE
 use.mc.nonlin    <- FALSE
 use.mc.nonlinAS	 <- NULL
 
@@ -109,7 +109,7 @@ w.mat.stata			= FALSE
 
 std.err				= "corrected"
 
-estimation			= "onestep"
+estimation			= "twostep"
 max.iter				= 100
 iter.tol				= 0.01
 inst.thresh			= NULL
