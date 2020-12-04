@@ -12,7 +12,11 @@
   col.coefRange = 1,
   col.coefInitial = "darkgrey",
   col.coefEst = "royalblue",
+  omit1step = FALSE,
   boxplot.coef = FALSE,
+  co = NULL,
+  add.se.approx = NULL,
+  conf.lev = 0.95,
   ...
 )
 }
@@ -20,18 +24,20 @@
 \item{x}{An object of class `pdynmc`. The function requires
 twostep or iterative GMM estimates.}
 
-\item{type}{Wether to plot fitted values against residuals (argument
-'fire'; default) or coefficient ranges (argument 'coef.range';
-this requires twostep or iterative GMM estimates.}
+\item{type}{Whether to plot fitted values against residuals (argument
+'fire'; default), coefficient ranges (argument 'coef.range';
+this requires twostep or iterative GMM estimates), path of
+coefficient estimates across GMM iterations (argument 'coef.path';
+this requires twostep or iterative GMM estimates).}
 
 \item{include.dum}{Include estimates of parameters corresponding to time
-dummies (defaults to 'FALSE'; requires 'type = coef.range').}
+dummies (defaults to 'black'; requires 'type = coef.range').}
 
 \item{include.fur.con}{Include estimates of parameters corresponding to
 further controls (defaults to 'FALSE'; requires 'type = coef.range').}
 
 \item{col.coefRange}{Specify color for plotting range of coefficient
-estimates (defaults to 'black'; requires 'type = coef.range').}
+estimates (defaults to 'NULL'; requires 'type = coef.range').}
 
 \item{col.coefInitial}{Specify color for plotting initial coefficient
 estimates (defaults to 'darkgrey'; requires 'type = coef.range').}
@@ -39,10 +45,37 @@ estimates (defaults to 'darkgrey'; requires 'type = coef.range').}
 \item{col.coefEst}{Specify color for plotting coefficient estimate
 (defaults to 'royalblue'; requires 'type = coef.range').}
 
-\item{boxplot.coef}{Wether to draw boxplots for coefficient estimates
+\item{omit1step}{Omit coefficient estimates from one-step GMM
+estimation in coefficient range plot. The argument can after
+obtaining coefficient estimates from numerical optimization
+methods to exclude the randomly drawn starting values from the
+plotted coefficient range (defaults to `FALSE`). Set to `TRUE` to
+exert the option; this argument requires iterative GMM estimates
+and argument 'type = coef.range'.}
+
+\item{boxplot.coef}{Whether to draw boxplots for coefficient estimates
 (defaults to 'FALSE'); requires iterative GMM with at least 10
 iterations and argument 'type = coef.range'. Proceed with caution
 as this argument is experimental.}
+
+\item{co}{Character string denoting the variable name(s) for which to
+plot the path of coefficient estimate(s) across GMM iterations
+(defaults to 'NULL') as proposed in \insertCite{HanLee2020inference;textual}{pdynmc};
+if no coefficient name is given, all coefficient paths are plotted;
+requires at least two iterations and argument 'type = coef.path'.}
+
+\item{add.se.approx}{A logical variable indicating if standard errors
+should be added to the plot of the path of coefficient estimate(s)
+across GMM iterations (defaults to 'NULL'); requires at least
+two iterations and argument 'type = coef.path'. This option is
+only available when plotting a single coefficient path (i.e.,
+when 'co' contains only a single variable name).}
+
+\item{conf.lev}{A numeric variable indicating the confidence
+level for approximating standard errors in the plot of the path
+of coefficient estimate(s) across GMM iterations (defaults to
+0.95; sensible values lie in the interval ]0,1[); requires
+argument 'type = coef.path' and argument 'add.se.approx = TRUE'.}
 
 \item{...}{further arguments.}
 }
@@ -53,8 +86,11 @@ Plot fitted values against residuals ('type = fire') or
    plot requires twostep or iterative GMM estimates.
 }
 \description{
-\code{plot.pdynmc} Plot coefficient estimates and corresponding
-   coefficient estimate ranges for objects of class `pdynmc`.
+\code{plot.pdynmc} Plot methods for objects of class `pdynmc`. The
+   available plot options visualize: Fitted values versus residuals,
+   coefficient ranges across GMM iterations, coefficient paths and
+   objective function values across GMM iterations as proposed by
+   \insertCite{HanLee2020inference;textual}{pdynmc}.
 }
 \examples{
 ## Load data from plm package
@@ -78,6 +114,7 @@ if(!requireNamespace("plm", quietly = TRUE)){
     opt.meth = "none")
  plot(m1)
  plot(m1, type = "coef.range")
+ plot(m1, type = "coef.path")
 }
 
 \donttest{
@@ -101,10 +138,14 @@ if(!requireNamespace("plm", quietly = TRUE)){
     opt.meth = "none")
  plot(m1)
  plot(m1, type = "coef.range")
+ plot(m1, type = "coef.path")
 }
 }
 
 
+}
+\references{
+\insertAllCited{}
 }
 \seealso{
 \code{\link{pdynmc}} for fitting a linear dynamic panel data model.

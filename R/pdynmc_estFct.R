@@ -91,7 +91,8 @@
 #'    moment conditions should be used.
 #' @param use.mc.nonlinAS A logical variable indicating whether only the nonlinear
 #'    (quadratic) moment conditions in the form proposed by
-#'    \insertCite{AhnSch1995;textual}{pdynmc} should be used (defaults to `TRUE`).
+#'    \insertCite{AhnSch1995;textual}{pdynmc} should be used (is set to `TRUE`
+#'    when nonlinear moment conditions are employed).
 #' @param inst.stata A logical variable indicating whether to use the moment
 #'    conditions from equations in levels as in Stata implementations xtabond2
 #'    \insertCite{Roo2018xtabond2;textual}{pdynmc} and xtdpdgmm
@@ -142,16 +143,15 @@
 #'    IV-type instruments (i.e., include covariates which are used as instruments
 #'    but for which no parameters are estimated; defaults to `FALSE`).
 #' @param varname.reg.instr One or more character strings denoting the covariate(s)
-#'    in the data set treated as instruments in IV-estimation (defaults to `NULL`).
+#'    in the data set treated as instruments in estimation (defaults to `NULL`).
 #' @param inst.reg.ex.expand A logical variable that allows for using all past,
-#'    present, and future observations of `varname.reg.ex` to der instruments
+#'    present, and future observations of `varname.reg.ex` to derive instruments
 #'    (defaults to `TRUE`).
 #' @param include.x.toInstr A logical variable that allows to instrument covariates
-#'    (i.e., include covariates for which parameters are estimated but which are
-#'    not employed in estimation; defaults to `FALSE`).
+#'    (i.e., covariates which are not used as instruments but for which parameters
+#'    are estimated; defaults to `FALSE`).
 #' @param varname.reg.toInstr One or more character strings denoting the covariates
-#'    in the data set to be instrumented (i.e., covariates which are used as
-#'    instruments but for which no parameters are estimated; defaults to `FALSE`).
+#'    in the data set to be instrumented (defaults to `NULL`).
 #' @param fur.con A logical variable indicating whether further control variables
 #'    (covariates) are included (defaults to `FALSE`).
 #' @param fur.con.diff A logical variable indicating whether to include further
@@ -167,9 +167,9 @@
 #' @param include.dum A logical variable indicating whether dummy variables for
 #'    the time periods are included (defaults to `FALSE`).
 #' @param dum.diff A logical variable indicating whether dummy variables are
-#'    included in the equations in first differences (defaults to `FALSE`).
+#'    included in the equations in first differences (defaults to `NULL`).
 #' @param dum.lev A logical variable indicating whether dummy variables are
-#'    included in the equations in levels (defaults to `TRUE`).
+#'    included in the equations in levels (defaults to `NULL`).
 #' @param varname.dum One or more character strings from which time dummies should
 #'    be derived (can be different from varname.t; defaults to `NULL`).
 #' @param col_tol A numeric variable in [0,1] indicating the absolute correlation
@@ -407,12 +407,12 @@ pdynmc		<- function(
  ,varname.reg.ex			= NULL
  ,lagTerms.reg.ex			= NULL
  ,maxLags.reg.ex			= NULL
+ ,inst.reg.ex.expand  = TRUE
 
  ,include.x.instr			= FALSE
  ,varname.reg.instr		= NULL
- ,inst.reg.ex.expand  = TRUE
  ,include.x.toInstr		= FALSE
- ,varname.reg.toInstr		= NULL
+ ,varname.reg.toInstr	= NULL
 
  ,fur.con				= FALSE
  ,fur.con.diff			= NULL
@@ -420,9 +420,9 @@ pdynmc		<- function(
  ,varname.reg.fur			= NULL
  ,lagTerms.reg.fur		= NULL
 
- ,include.dum			= TRUE
+ ,include.dum			= FALSE
  ,dum.diff				= NULL
- ,dum.lev				= TRUE
+ ,dum.lev				  = NULL
  ,varname.dum			= NULL
 # ,custom.dum			= NULL
 # ,partOut				= FALSE
@@ -472,12 +472,10 @@ pdynmc		<- function(
 #   }
 # }
 
- if(custom.start.val == TRUE & is.null(custom.start.val)){
-   start.val		<- rep(0, times = 17)
- }
 
  if(use.mc.nonlin & opt.meth == "none"){
-   opt.met			<- "BFGS"
+   opt.meth			<- "BFGS"
+   warning("Nonlinear optimization required to use nonlinear moment conditions; 'opt.meth' was set to 'BFGS'.")
  }
 
  if(use.mc.nonlin == TRUE & is.null(use.mc.nonlinAS)){
@@ -491,7 +489,7 @@ pdynmc		<- function(
 
  end.reg			<- !(is.null(varname.reg.end))
  pre.reg			<- !(is.null(varname.reg.pre))
- ex.reg			<- !(is.null(varname.reg.ex))
+ ex.reg			  <- !(is.null(varname.reg.ex))
 
  instr.reg			<- !(is.null(varname.reg.instr))
  toInstr.reg		<- !(is.null(varname.reg.toInstr))
@@ -538,6 +536,11 @@ pdynmc		<- function(
    warning("No further controls given; 'fur.con' was therefore set to FALSE.")
  }
 
+ if(!fur.con){
+   fur.con.diff <- FALSE
+   fur.con.lev <- FALSE
+ }
+
  if(!(fur.con) && !(is.null(varname.reg.fur))
  ){
    suppressWarnings(rm(varname.reg.fur))
@@ -561,7 +564,7 @@ pdynmc		<- function(
      warning("Option 'fur.con.diff' not specified; option was therefore set to FALSE.")
    }
  }
- if(!fur.con && ( (!is.null(fur.con.diff & fur.con.lev)) | (fur.con.diff | fur.con.lev)) ){
+ if(!fur.con && !((is.null(fur.con.diff) & is.null(fur.con.lev)) | (is.null(fur.con.diff) | is.null(fur.con.lev))) ){
    if(fur.con.diff){
      fur.con.diff <- FALSE
      warning("No further controls included; argument 'fur.con.diff' was therefore ignored")
@@ -599,7 +602,7 @@ pdynmc		<- function(
 
  if(inst.reg.ex.expand & !use.mc.diff & ( (!include.x.instr & is.null(varname.reg.ex)) | (is.null(varname.reg.ex)) ) ){
    inst.reg.ex.expand <- NULL
-   warning("No exogenous covariates given; 'inst.reg.ex.expand' was therefore ignored.")
+#   warning("No exogenous covariates given; 'inst.reg.ex.expand' was therefore ignored.")
  }
 
  if(include.dum && is.null(varname.dum)
@@ -633,18 +636,24 @@ pdynmc		<- function(
      warning("Option 'dum.diff' not specified; option was therefore set to FALSE.")
    }
  }
- if(!include.dum && ( !(is.null(dum.diff & dum.lev)) | (dum.diff | dum.lev) ) ){
-   if(dum.diff){
+ if(!include.dum &  (!is.null(dum.diff) | !is.null(dum.lev)) ){
+   if(!is.null(dum.diff)){
      dum.diff <- FALSE
      warning("No dummies included; argument 'dum.diff' was therefore ignored")
    }
-   if(dum.lev){
+   if(!is.null(dum.lev)){
      dum.lev <- FALSE
      warning("No dummies included; argument 'dum.lev' was therefore ignored")
    }
  }
-
-
+ if(!include.dum &  (is.null(dum.diff) | is.null(dum.lev)) ){
+   if(is.null(dum.diff)){
+     dum.diff <- FALSE
+   }
+   if(is.null(dum.lev)){
+     dum.lev <- FALSE
+   }
+ }
 
 
 
@@ -685,10 +694,10 @@ pdynmc		<- function(
 
 
 
- i_cases			<- sort(unique(dat[, varname.i]))
- i_temp			<- 1:length(i_cases)				# [M:] reflects data structures where i does not start at i = 1
- t_cases			<- sort(unique(dat[, varname.t]))
- t_temp			<- 1:length(unique(t_cases))			# [M:] reflects data structures where t does not start at t = 1
+ i_cases		<- sort(unique(dat[, varname.i]))
+ i_temp			<- 1:length(i_cases)				      # reflects data structures where i does not start at i = 1
+ t_cases		<- sort(unique(dat[, varname.t]))
+ t_temp			<- 1:length(unique(t_cases))			# reflects data structures where t does not start at t = 1
 
 
  dat_b			<- as.data.frame(array(data = NA, dim = c(length(i_cases)*length(t_cases), 2),dimnames = list(NULL, c(varname.i, varname.t))))
@@ -702,7 +711,7 @@ pdynmc		<- function(
  dat.na			<- dat
  dat[is.na(dat.na)]	<- 0
 
-
+# i_cases		<- as.numeric(i_cases)
 
 
 
@@ -863,7 +872,7 @@ pdynmc		<- function(
 
 
 ###
-###	Specifying the number of lags avaialble to derive instruments and further expanding the data set
+###	Specifying the number of lags available to derive instruments and further expanding the data set
 ###
 
 
@@ -872,24 +881,22 @@ pdynmc		<- function(
  if((include.y | !(is.null(lagTerms.y))) & !(is.null(maxLags.y))){
    if(maxLags.y + 2 > Time){				# [M:] maximum number of time periods of y_{it}- and x_{it}-process employed in estimation
      maxLags.y		<- Time-2
-     warning(cat(paste(c("Longitudinal dimension too low. Maximum number of instruments from dependent variable to be employed in estimation",
-				"was therefore reduced to ", Time-2, " (= Time-2)."), sep = "\n")) )
+     warning(paste(c("Longitudinal dimension too short. Maximum number of instruments from dependent variable to be employed in estimation",
+				"was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
    }
-   if(maxLags.y < 2 & use.mc.nonlin){
-     use.mc.nonlin		<- FALSE
-     warning(paste("Number of lags of dependent variable too low to obtain nonlinear moment conditions; 'use.mc.nonlin' was therefore set to 'FALSE'."))
-   }
+
  } else{
    maxLags.y			<- Time-2
  }
+
 
  if(include.x){
    if(is.null(maxLags.reg.end)){
      try(if(length(maxLags.reg.end) != length(varname.reg.end)) stop("maximum number of lags of non-lagged-dependent endogenous covariates from which instruments should be derived needs to be specified completely"))
      if(any(maxLags.reg.end + 2 > Time)){
        maxLags.reg.end[maxLags.reg.end > Time-2]		<- Time - 2
-       warning(cat(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent endogenous covariates",
-				"was reduced to ", Time-2, " (= Time-2)."), sep = "\n")) )
+       warning(paste(c("Longitudinal dimension too short. Maximum number of lags to obtain instruments from non-lagged-dependent endogenous covariates",
+				"was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
      }
    }
    if(!is.null(varname.reg.end) & is.null(maxLags.reg.end)){
@@ -900,30 +907,49 @@ pdynmc		<- function(
      try(if(length(maxLags.reg.pre) != length(varname.reg.pre)) stop("maximum number of lags of non-lagged-dependent predetermined covariates from which instruments should be derived needs to be specified completely."))
      if(any(maxLags.reg.pre + 1 > Time)){
        maxLags.reg.pre[maxLags.reg.pre > Time-1]		<- Time - 1
-       warning(cat(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent predetermined covariates",
-				"was reduced to ", Time-2, " (= Time-2)."), sep = "\n")) )
+       warning(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent predetermined covariates",
+				"was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
      }
    }
    if(!(is.null(varname.reg.pre)) & is.null(maxLags.reg.pre)){
      maxLags.reg.pre						<- rep(Time-1, times = length(varname.reg.pre))
-     warning(cat(paste("Number of lags of non-lagged dependent predetermined covariates from which instruments should be derived not specified.",
-			"Number was set to ", Time-1, " (= Time-1) for the ", length(varname.reg.pre), " predetermined covariates.", sep = "\n")) )
+     warning(paste("Number of lags of non-lagged dependent predetermined covariates from which instruments should be derived not specified.",
+			"Number was set to ", Time-1, " (= Time-1) for the ", length(varname.reg.pre), " predetermined covariates.", sep = "\n") )
    }
    if(!(is.null(maxLags.reg.ex))){
      try(if(length(maxLags.reg.ex) != length(varname.reg.ex)) stop("maximum number of lags of non-lagged-dependent exogenous covariates from which instruments should be derived needs to be specified completely"))
      if(any(maxLags.reg.ex > Time)){
-       maxLags.reg.ex[maxLags.reg.ex > Time]		<- Time					# [M:] only required for HNR m.c. (from equ. in differences)
-       warning(cat(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent exogenous covariates",
-				"was reduced to ", Time-2, " (= Time-2)."), sep = "\n")) )
+       maxLags.reg.ex[maxLags.reg.ex > Time]		<- Time					# [M:] only required for HNR m.c. (from equations in differences)
+       warning(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent exogenous covariates",
+				"was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
      }
    }
    if(!(is.null(varname.reg.ex)) & is.null(maxLags.reg.ex)){
      maxLags.reg.ex						<- rep(Time, times = length(varname.reg.ex))
-     warning(cat(paste("Number of lags of non-lagged dependent exogenous covariates from which instruments should be derived not specified.",
-			"Number was set to ", Time, " (= Time) for the ", length(varname.reg.ex), " exogenous covariates.", sep = "\n")) )
+     warning(paste("Number of lags of non-lagged dependent exogenous covariates from which instruments should be derived not specified.",
+			"Number was set to ", Time, " (= Time) for the ", length(varname.reg.ex), " exogenous covariates.", sep = "\n") )
    }
  }
 
+
+ if(use.mc.diff){
+   minLags.d <- max(2, max.lagTerms + 1)
+   lagLimit.d.temp <- min(if(!(is.null(varname.y)) | !(is.null(maxLags.y))){ maxLags.y }, if(!(is.null(varname.reg.end))){ maxLags.reg.end },
+                         if(!(is.null(varname.reg.pre))){ maxLags.reg.pre }, if(!(is.null(varname.reg.ex))){ maxLags.reg.ex } )
+   if(lagLimit.d.temp < minLags.d) stop(paste("'maxLags' set too low. Minimum number of lags required to derive moment conditions from equations in differences is ", minLags.d, ".", sep = ""))
+ }
+ if(use.mc.lev){
+   minLags.l <- max(2, max.lagTerms)
+   lagLimit.l.temp <- min(if(!(is.null(varname.y)) | !(is.null(maxLags.y))){ maxLags.y }, if(!(is.null(varname.reg.end))){ maxLags.reg.end },
+                         if(!(is.null(varname.reg.pre))){ maxLags.reg.pre }, if(!(is.null(varname.reg.ex))){ maxLags.reg.ex } )
+   if(lagLimit.l.temp < minLags.l) stop(paste("'maxLags' set too low. Minimum number of lags required to derive moment conditions from equations in levels is ", minLags.l, ".", sep = ""))
+ }
+ if(use.mc.nonlin){
+   minLags.dnl <- max(3, max.lagTerms+2)
+   lagLimit.dnl.temp <- min(if(!(is.null(varname.y)) | !(is.null(maxLags.y))){ maxLags.y }, if(!(is.null(varname.reg.end))){ maxLags.reg.end },
+                          if(!(is.null(varname.reg.pre))){ maxLags.reg.pre }, if(!(is.null(varname.reg.ex))){ maxLags.reg.ex } )
+   if(lagLimit.dnl.temp < minLags.dnl) stop(paste("'maxLags' set too low. Minimum number of lags required to derive nonlinear moment conditions is ", minLags.dnl, ".", sep = ""))
+ }
 
 
 
@@ -1103,7 +1129,6 @@ pdynmc		<- function(
 
 
 
-
 # varname.reg.estParam		<- do.call(what = "c", args = list(varname.reg.estParam))
 
 
@@ -1136,11 +1161,11 @@ pdynmc		<- function(
 
 
 
+ dat.na$i.label      <- dat.na[, varname.i]
+ dat.na[, varname.i] <- as.numeric(dat.na[, varname.i])
 
-
- dat					<- dat.na
+ dat					        <- dat.na
  dat[is.na(dat.na)]		<- 0
-
 
 
 
@@ -1156,7 +1181,7 @@ pdynmc		<- function(
 
  Z.obj		<- lapply(X = i_cases, FUN = Z_i.fct, Time = Time, varname.i = varname.i
 #					, mc.ref.t = mc.ref.t
-					,use.mc.diff = use.mc.diff, use.mc.lev = use.mc.lev, use.mc.nonlin = use.mc.nonlin
+					,use.mc.diff = use.mc.diff, use.mc.lev = use.mc.lev, use.mc.nonlin = use.mc.nonlin, use.mc.nonlinAS = use.mc.nonlinAS
 					,include.y = include.y, varname.y = varname.y, inst.stata = inst.stata
 					,include.dum = include.dum, dum.diff = dum.diff, dum.lev = dum.lev, colnames.dum = colnames.dum
 					,fur.con = fur.con, fur.con.diff = fur.con.diff, fur.con.lev = fur.con.lev, varname.reg.estParam.fur = varname.reg.estParam.fur
@@ -1185,6 +1210,11 @@ pdynmc		<- function(
    } else{
      varname.reg.estParam	<- c(varname.reg.estParam, unlist(lapply(strsplit(x = colnames.dum.Z, split = "D."), FUN = `[[`, 2)))
    }
+ }
+
+
+ if(sum(resGMM$n.inst) < length(varname.reg.estParam)){
+   stop(paste("Cannot estimate ", length(varname.reg.estParam), " parameters from ", sum(resGMM$n.inst)," moment conditions.", sep = ""))
  }
 
 
@@ -1217,11 +1247,11 @@ pdynmc		<- function(
  }
 
 
-# resGMM$param.ini			<- runif(n = nmulti*(length(varname.reg.estParam)), min = start.val.lo, max = start.val.up)
-## resGMM$param.ini			<- runif(n = nmulti*(length(varname.reg.estParam)), min = -1, max = 1)
-### resGMM$param.ini			<- matrix(data = runif(n = nmulti*(estimate.int + 1 + length(varname.reg.estParam)), min = -1, max = 1), nrow = nmulti)	#INT#
-## resGMM$param.ini			<- matrix(data = runif(n = nmulti*(length(varname.reg.estParam)), min = -1, max = 1), nrow = nmulti)
-### resGMM$param.ini			<- matrix(data = rep(0, times = length(varname.reg.estParam)) )		# [M:] Stata default
+ # resGMM$param.ini			<- runif(n = nmulti*(length(varname.reg.estParam)), min = start.val.lo, max = start.val.up)
+ ## resGMM$param.ini			<- runif(n = nmulti*(length(varname.reg.estParam)), min = -1, max = 1)
+ ### resGMM$param.ini			<- matrix(data = runif(n = nmulti*(estimate.int + 1 + length(varname.reg.estParam)), min = -1, max = 1), nrow = nmulti)	#INT#
+ ## resGMM$param.ini			<- matrix(data = runif(n = nmulti*(length(varname.reg.estParam)), min = -1, max = 1), nrow = nmulti)
+ ### resGMM$param.ini			<- matrix(data = rep(0, times = length(varname.reg.estParam)) )		# [M:] Stata default
 
 
 
@@ -1253,7 +1283,6 @@ pdynmc		<- function(
 
  env				<- as.numeric()
  par.opt.j			<- as.numeric()
- W.j				<- as.numeric()
  resGMM.W.j			<- list()
  resGMM.H.i			<- as.numeric()
  resGMM.opt.j		<- list()
@@ -1261,7 +1290,9 @@ pdynmc		<- function(
  resGMM.ctrl.opt.j	<- list()
  resGMM.clF.j		<- list()
  resGMM.Szero.j		<- list()
+ resGMM.Szero2.j		<- list()
  resGMM.fitted.j		<- list()
+ resGMM.fitted2.j		<- list()
  resGMM.resid		<- list()
  resGMM.vcov.j		<- list()
  resGMM.stderr.j		<- list()
@@ -1277,12 +1308,11 @@ pdynmc		<- function(
 
 # if(estimation != "cue"){
 
-   W.j				<- Wonestep.fct(w.mat = w.mat, w.mat.stata = w.mat.stata, use.mc.diff = use.mc.diff, use.mc.lev = use.mc.lev, use.mc.nonlin = use.mc.nonlin
+   resGMM.W.j[[j]]				<- Wonestep.fct(w.mat = w.mat, w.mat.stata = w.mat.stata, use.mc.diff = use.mc.diff, use.mc.lev = use.mc.lev, use.mc.nonlin = use.mc.nonlin, use.mc.nonlinAS = use.mc.nonlinAS
 						,dum.diff = dum.diff, dum.lev = dum.lev, fur.con.diff = fur.con.diff, fur.con.lev = fur.con.lev
 						,Z.temp = resGMM$Z.temp, n = n, Time = Time, env = env
 #						,mc.ref.t = mc.ref.t
-						, max.lagTerms = max.lagTerms, end.reg = end.reg, ex.reg = ex.reg, pre.reg = pre.reg, n.inst = resGMM$n.inst, inst.thresh = inst.thresh)
-   resGMM.W.j[[j]]		<- W.j
+						, max.lagTerms = max.lagTerms, maxLags.y = maxLags.y, end.reg = end.reg, ex.reg = ex.reg, pre.reg = pre.reg, n.inst = resGMM$n.inst, inst.thresh = inst.thresh)
    names(resGMM.W.j)[j]		<- paste("step", j, sep = "")
 
    resGMM.H.i			<- H_i
@@ -1295,28 +1325,19 @@ pdynmc		<- function(
    if(opt.meth != "none"){
 
 
-#gmmObj.fct(j = j, param = resGMM$param.ini, y_m1 = resGMM.Dat$y_m1, X_m1 = resGMM.Dat$X_m1, dy = resGMM.Dat$dy, dX = resGMM.Dat$dX, varname.reg.estParam = varname.reg.estParam, n = n, Time = Time, include.y = include.y, varname.y = varname.y, use.mc.diff = use.mc.diff, use.mc.nonlin = use.mc.nonlin, use.mc.nonlinAS = use.mc.nonlinAS, use.mc.lev = use.mc.lev, dum.diff = dum.diff, fur.con.diff = fur.con.diff, max.lagTerms = max.lagTerms, end.reg = end.reg, ex.reg = ex.reg, pre.reg = pre.reg, dum.lev = dum.lev, fur.con.lev = fur.con.lev, Z.temp = resGMM$Z.temp, W = get(paste("step", j, sep = ""), resGMM.W.j))
-
 
 
      par.opt.j		 		<- optimx::optimx(
-#         results.GMM1s			<- optimx::optimx(
-##         results.GMM1s[[ro]]		<- optimx(			#[M:] in case of multi starts; multistarting is addressed more easily outside the function!
-##         results.GMM1s[[ro]]		<- optimr(
-##          par				= param.ini[ro]
-##          par				= param.ini[ro, ]
-       par = resGMM$param.ini, fn = gmmObj.fct, method = opt.meth, control = optCtrl
-       ,j = j, y_m1 = resGMM.Dat$y_m1, X_m1 = resGMM.Dat$X_m1, dy = resGMM.Dat$dy, dX = resGMM.Dat$dX
-       ,varname.reg.estParam = resGMM$varnames, n = n, Time = Time, include.y = include.y, varname.y = varname.y
+       par = resGMM$param.ini, j = j, fn = gmmObj.fct, method = opt.meth, control = optCtrl
+       ,y_m1 = resGMM.Dat$y_m1, X_m1 = resGMM.Dat$X_m1, dy = resGMM.Dat$dy, dX = resGMM.Dat$dX
+       ,varname.reg.estParam = resGMM$varnames.reg, n = n, Time = Time, include.y = include.y, varname.y = varname.y
        ,use.mc.diff = use.mc.diff, use.mc.nonlin = use.mc.nonlin, use.mc.nonlinAS = use.mc.nonlinAS , use.mc.lev = use.mc.lev
-       ,dum.diff = dum.diff, fur.con.diff = fur.con.diff, max.lagTerms = max.lagTerms, end.reg = end.reg, ex.reg = ex.reg, pre.reg = pre.reg
+       ,dum.diff = dum.diff, fur.con.diff = fur.con.diff, max.lagTerms = max.lagTerms, maxLags.y = maxLags.y, end.reg = end.reg, ex.reg = ex.reg, pre.reg = pre.reg
        ,dum.lev = dum.lev, fur.con.lev = fur.con.lev
-       ,Z.temp = resGMM$Z.temp, W = W.j, env = env
-#       ,mc.ref.t = mc.ref.t, mc.ref.T = mc.ref.T, N_i = N_i
+       ,Z.temp = resGMM$Z.temp, W = resGMM.W.j[[1]], env = env
+#       mc.ref.t = mc.ref.t, mc.ref.T = mc.ref.T, N_i = N_i
      )
 
-     resGMM.fitted.j[[j]]		<- fitted.j
-     resGMM.Szero.j[[j]]		<- Szero.j
    }
    resGMM.opt.j[[j]]			<- par.opt.j
    resGMM.par.opt.j[[j]]		<- as.numeric(resGMM.opt.j[[j]][1:length(varname.reg.estParam)])
@@ -1327,19 +1348,31 @@ pdynmc		<- function(
    dat.temp			<- lapply(X = i_cases, FUN = dat.closedFormExpand.fct
 					,dat.na = dat.na, varname.i = varname.i, varname.reg.instr = varname.reg.instr
 					,varname.reg.toInstr = varname.reg.toInstr, varname.y = varname.y, varname.reg.estParam = varname.reg.estParam
-					,use.mc.diff = use.mc.diff, use.mc.lev = use.mc.lev, use.mc.nonlin = use.mc.nonlin
-					,dum.diff = dum.diff, dum.lev = dum.lev, fur.con.diff = fur.con.diff, fur.con.lev = fur.con.lev, max.lagTerms = max.lagTerms, Time = Time)
+					,use.mc.diff = use.mc.diff, use.mc.lev = use.mc.lev, use.mc.nonlin = use.mc.nonlin, use.mc.nonlinAS = use.mc.nonlinAS
+					,dum.diff = dum.diff, dum.lev = dum.lev, fur.con.diff = fur.con.diff, fur.con.lev = fur.con.lev, max.lagTerms = max.lagTerms, maxLags.y = maxLags.y, Time = Time
+					,include.x = include.x, pre.reg = pre.reg, ex.reg = ex.reg)
+
+   dat.res.temp <- lapply(X = i_cases, FUN = dat.expand.fct
+                          ,dat.na = dat.na, varname.i = varname.i, varname.reg.instr = varname.reg.instr
+                          ,varname.reg.toInstr = varname.reg.toInstr, varname.y = varname.y, varname.reg.estParam = varname.reg.estParam
+                          , max.lagTerms = max.lagTerms, Time = Time)
 
    if(nrow(resGMM$Z.temp[[1]]) == 1){
      dat.clF.temp		<- lapply(lapply(dat.temp, `[[`, 1), function(x) Matrix::t(x))
+     Xdat.temp    <- lapply(lapply(dat.res.temp, `[[`, 1), function(x) Matrix::t(x))
      dep.temp			<- lapply(dat.temp, `[[`, 2)
+     dep.res.temp <- lapply(dat.res.temp, `[[`, 2)
    } else{
      dat.clF.temp		<- lapply(dat.temp, `[[`, 1)
+     Xdat.temp    <- lapply(dat.res.temp, `[[`, 1)
      dep.temp			<- lapply(dat.temp, `[[`, 2)
+     dep.res.temp <- lapply(dat.res.temp, `[[`, 2)
    }
 
    dat.clF.temp.0		<- rapply(lapply(dat.clF.temp, FUN = as.matrix), function(x) ifelse(is.na(x), 0, x), how = "replace")
-   dep.temp.0		<- rapply(lapply(dep.temp, FUN = as.matrix), function(x) ifelse(is.na(x), 0, x), how = "replace")
+   Xdat.temp.0      <- rapply(lapply(Xdat.temp, FUN = as.matrix), function(x) ifelse(is.na(x), 0, x), how = "replace")
+   dep.temp.0		    <- rapply(lapply(dep.temp, FUN = as.matrix), function(x) ifelse(is.na(x), 0, x), how = "replace")
+   dep.res.temp.0		<- rapply(lapply(dep.res.temp, FUN = as.matrix), function(x) ifelse(is.na(x), 0, x), how = "replace")
 
 
 #   if(use.mc.diff + use.mc.lev + use.mc.nonlin > 1){
@@ -1376,33 +1409,46 @@ pdynmc		<- function(
 #   resGMM$dat.clF.temp.0	<- dat.clF.temp.0
 
 
-   tZX				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, dat.clF.temp.0))
-   tZY				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, dep.temp.0))
+   tZX				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, dat.clF.temp.0, SIMPLIFY = FALSE))
+   tZY				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, dep.temp.0, SIMPLIFY = FALSE))
 
 #   tXZW1tZX.inv			<- solve(tcrossprod(crossprod(as.matrix(tZX), get(paste("step", j, sep = ""), resGMM.W.j)), t(as.matrix(tZX))))
    tXZW1tZX.inv			<- MASS::ginv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX)) ) )
 #   tXZW1tZY				<- Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZY))
    tYZW1tZX				<- Matrix::crossprod(tZY, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))
 
-   if(!(use.mc.nonlin)){
+   if(!use.mc.nonlin){
      resGMM.clF.j[[j]]		<- as.numeric(Matrix::tcrossprod(tXZW1tZX.inv, tYZW1tZX))
    } else{
      resGMM.clF.j[[j]]		<- rep(NA, times = length(varname.reg.estParam))
    }
    names(resGMM.clF.j)[j]		<- paste("step", j, sep = "")
 
-   if(opt.meth == "none"){
+   if(opt.meth != "none"){
+     resGMM.fitted.j[[j]]		<- lapply(mapply(function(x) Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.par.opt.j))), dat.clF.temp, SIMPLIFY=FALSE), FUN = as.numeric)
+     resGMM.Szero.j[[j]]		<- mapply(function(y,x) y - Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.par.opt.j))), dep.temp, dat.clF.temp, SIMPLIFY=FALSE)
+     resGMM.Szero.j[[j]]		<- lapply(rapply(lapply(resGMM.Szero.j[[j]], FUN = as.matrix), f = function(x) ifelse(is.na(x), 0, x), how = "replace"), FUN = as.vector)
+     resGMM.fitted2.j[[j]]	<- lapply(mapply(function(x) Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.par.opt.j))), Xdat.temp, SIMPLIFY=FALSE), FUN = as.numeric)
+     resGMM.Szero2.j[[j]]		<- mapply(function(y,x) y - Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.par.opt.j))), dep.res.temp, Xdat.temp, SIMPLIFY=FALSE)
+     resGMM.Szero2.j[[j]]		<- lapply(rapply(lapply(resGMM.Szero2.j[[j]], FUN = as.matrix), f = function(x) ifelse(is.na(x), 0, x), how = "replace"), FUN = as.vector)
+
+   } else{
      resGMM.fitted.j[[j]]		<- lapply(mapply(function(x) Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.clF.j))), dat.clF.temp, SIMPLIFY=FALSE), FUN = as.numeric)
      resGMM.Szero.j[[j]]		<- mapply(function(y,x) y - Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.clF.j))), dep.temp, dat.clF.temp, SIMPLIFY=FALSE)
      resGMM.Szero.j[[j]]		<- lapply(rapply(lapply(resGMM.Szero.j[[j]], FUN = as.matrix), f = function(x) ifelse(is.na(x), 0, x), how = "replace"), FUN = as.vector)
+     resGMM.fitted2.j[[j]]	<- lapply(mapply(function(x) Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.clF.j))), Xdat.temp, SIMPLIFY=FALSE), FUN = as.numeric)
+     resGMM.Szero2.j[[j]]		<- mapply(function(y,x) y - Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.clF.j))), dep.res.temp, Xdat.temp, SIMPLIFY=FALSE)
+     resGMM.Szero2.j[[j]]		<- lapply(rapply(lapply(resGMM.Szero2.j[[j]], FUN = as.matrix), f = function(x) ifelse(is.na(x), 0, x), how = "replace"), FUN = as.vector)
    }
-   names(resGMM.fitted.j)[j]		<- paste("step", j, sep = "")
+
+   names(resGMM.fitted.j)[j]	<- paste("step", j, sep = "")
    names(resGMM.Szero.j)[j]		<- paste("step", j, sep = "")
+   names(resGMM.fitted2.j)[j]	<- paste("step", j, sep = "")
+   names(resGMM.Szero2.j)[j]	<- paste("step", j, sep = "")
 
 
-   resGMM.W.j[[j+1]]		<- Wtwostep.fct(Sj.0 = get(paste("step", j, sep = "") , resGMM.Szero.j), Z.temp = resGMM$Z.temp, n.inst = sum(resGMM$n.inst), inst.thresh = inst.thresh)
-   names(resGMM.W.j)[j+1]	<- paste("step", j+1, sep = "")
-
+   resGMM.W.j[[j + 1]]  <- Wtwostep.fct(Sj.0 = get(paste("step", j, sep = "") , resGMM.Szero.j), Z.temp = resGMM$Z.temp, n.inst = sum(resGMM$n.inst), inst.thresh = inst.thresh)
+   names(resGMM.W.j)[j + 1] <- paste("step", j+1, sep = "")
 
    n.obs				<- nrow(dat.na) - sum(is.na(dat.na[, varname.y]))
    resGMM.n.obs			<- n.obs
@@ -1448,8 +1494,7 @@ pdynmc		<- function(
      for(j in 2:j.max){
 
        if(j > 2){
-         W.j				<- Wtwostep.fct(Sj.0 = get(paste("step", j-1, sep = "") , resGMM.Szero.j), Z.temp = resGMM$Z.temp, n.inst = sum(resGMM$n.inst), inst.thresh = inst.thresh)
-         resGMM.W.j[[j]]		<- W.j
+         resGMM.W.j[[j]]		<- Wtwostep.fct(Sj.0 = get(paste("step", j-1, sep = "") , resGMM.Szero.j), Z.temp = resGMM$Z.temp, n.inst = sum(resGMM$n.inst), inst.thresh = inst.thresh)
          names(resGMM.W.j)[j]		<- paste("step", j, sep = "")
        }
 
@@ -1461,18 +1506,19 @@ pdynmc		<- function(
 
          par.opt.j		<- optimx::optimx(
 #          results.GMM1s		<- optimx::optimx(
-          par = as.numeric(par.opt.j[c(1:length(varname.reg.estParam))]), fn = gmmObj.fct, method = opt.meth, hessian = hessian, control = optCtrl
+           par = resGMM.par.opt.j[[j-1]], fn = gmmObj.fct, method = opt.meth, hessian = hessian, control = optCtrl
+#          par = as.numeric(par.opt.j[1:length(varname.reg.estParam)]), fn = gmmObj.fct, method = opt.meth, hessian = hessian, control = optCtrl
           ,j = j, Z.temp = resGMM$Z.temp, y_m1 = resGMM.Dat$y_m1, X_m1 = resGMM.Dat$X_m1, dy = resGMM.Dat$dy, dX = resGMM.Dat$dX
-          ,varname.reg.estParam = resGMM$varnames, n = n, Time = Time, include.y = include.y, varname.y = varname.y
+          ,varname.reg.estParam = resGMM$varnames.reg, n = n, Time = Time, include.y = include.y, varname.y = varname.y
           ,use.mc.diff = use.mc.diff, use.mc.nonlin = use.mc.nonlin, use.mc.nonlinAS = use.mc.nonlinAS , use.mc.lev = use.mc.lev
-          ,dum.diff = dum.diff, fur.con.diff = fur.con.diff, max.lagTerms = max.lagTerms, end.reg = end.reg, ex.reg = ex.reg, pre.reg = pre.reg
+          ,dum.diff = dum.diff, fur.con.diff = fur.con.diff, max.lagTerms = max.lagTerms, maxLags.y = maxLags.y, end.reg = end.reg, ex.reg = ex.reg, pre.reg = pre.reg
           ,dum.lev = dum.lev, fur.con.lev = fur.con.lev
-          ,W = W.j, env = env
+          ,W = resGMM.W.j[[j]], env = env
 #         ,mc.ref.t = mc.ref.t, mc.ref.T = mc.ref.T, N_i = N_i
          )
 
-         resGMM.fitted.j[[j]]		<- fitted.j
-         resGMM.Szero.j[[j]]		<- Szero.j
+#         resGMM.fitted.j[[j]]		<- fitted.j
+#         resGMM.Szero.j[[j]]		<- Szero.j
        }
        resGMM.par.opt.j[[j]]		<- as.numeric(par.opt.j[1:length(varname.reg.estParam)])
        names(resGMM.par.opt.j)[j]	<- paste("step", j, sep = "")
@@ -1483,20 +1529,34 @@ pdynmc		<- function(
 #       tXZW2tZY				<- Matrix::tcrossprod(Matrix::crossprod(tZX, get(paste("step", j, sep = ""), resGMM.W.j)), Matrix::t(tZY))
        tYZW2tZX				<- Matrix::crossprod(tZY, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))
 
-       if(!(use.mc.nonlin)){
+       if(!use.mc.nonlin){
          resGMM.clF.j[[j]]		<- as.numeric(Matrix::tcrossprod(tXZW2tZX.inv, tYZW2tZX))
        } else{
          resGMM.clF.j[[j]]		<- rep(NA, times = length(varname.reg.estParam))
        }
        names(resGMM.clF.j)[j]		<- paste("step", j, sep = "")
 
-       if(opt.meth == "none"){
+       if(opt.meth != "none"){
+         resGMM.fitted.j[[j]]		<- lapply(mapply(function(x) Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.par.opt.j))), dat.clF.temp, SIMPLIFY=FALSE), FUN = as.numeric)
+         resGMM.Szero.j[[j]]		<- mapply(function(y,x) y - Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.par.opt.j))), dep.temp, dat.clF.temp, SIMPLIFY=FALSE)
+         resGMM.Szero.j[[j]]		<- lapply(rapply(lapply(resGMM.Szero.j[[j]], FUN = as.matrix), f = function(x) ifelse(is.na(x), 0, x), how = "replace"), FUN = as.vector)
+         resGMM.fitted2.j[[j]]	<- lapply(mapply(function(x) Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.par.opt.j))), Xdat.temp, SIMPLIFY=FALSE), FUN = as.numeric)
+         resGMM.Szero2.j[[j]]		<- mapply(function(y,x) y - Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.par.opt.j))), dep.res.temp, Xdat.temp, SIMPLIFY=FALSE)
+         resGMM.Szero2.j[[j]]		<- lapply(rapply(lapply(resGMM.Szero2.j[[j]], FUN = as.matrix), f = function(x) ifelse(is.na(x), 0, x), how = "replace"), FUN = as.vector)
+
+       } else{
          resGMM.fitted.j[[j]]		<- lapply(mapply(function(x) Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.clF.j))), dat.clF.temp, SIMPLIFY=FALSE), FUN = as.numeric)
          resGMM.Szero.j[[j]]		<- mapply(function(y,x) y - Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.clF.j))), dep.temp, dat.clF.temp, SIMPLIFY=FALSE)
          resGMM.Szero.j[[j]]		<- lapply(rapply(lapply(resGMM.Szero.j[[j]], FUN = as.matrix), f = function(x) ifelse(is.na(x), 0, x), how = "replace"), FUN = as.vector)
+         resGMM.fitted2.j[[j]]	<- lapply(mapply(function(x) Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.clF.j))), Xdat.temp, SIMPLIFY=FALSE), FUN = as.numeric)
+         resGMM.Szero2.j[[j]]		<- mapply(function(y,x) y - Matrix::tcrossprod(x, Matrix::t(get(paste("step", j, sep = ""), resGMM.clF.j))), dep.res.temp, Xdat.temp, SIMPLIFY=FALSE)
+         resGMM.Szero2.j[[j]]		<- lapply(rapply(lapply(resGMM.Szero2.j[[j]], FUN = as.matrix), f = function(x) ifelse(is.na(x), 0, x), how = "replace"), FUN = as.vector)
        }
+
        names(resGMM.fitted.j)[j]	<- paste("step", j, sep = "")
-       names(resGMM.Szero.j)[j]	<- paste("step", j, sep = "")
+       names(resGMM.Szero.j)[j]	  <- paste("step", j, sep = "")
+       names(resGMM.fitted2.j)[j]	<- paste("step", j, sep = "")
+       names(resGMM.Szero2.j)[j]	<- paste("step", j, sep = "")
 
 
        resGMM.vcov.j[[j]]		<- MASS::ginv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX) ) ) )
@@ -1505,7 +1565,7 @@ pdynmc		<- function(
        names(resGMM.stderr.j)[j]	<- paste("step", j, sep = "")
 
 
-       tZ.res2s				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, get(paste("step", j, sep = ""), resGMM.Szero.j)))
+       tZ.res2s				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, get(paste("step", j, sep = ""), resGMM.Szero.j), SIMPLIFY = FALSE))
 
        D					<- c()
 
@@ -1553,9 +1613,9 @@ pdynmc		<- function(
 #     resGMM.iter 	<- j
 
      if(opt.meth != "none"){
-       if((j > 2) && ((j > j.max) | (sum(abs(as.numeric(get(paste("step", j, sep = "") , resGMM.par.opt.j)) - as.numeric(get(paste("step", j-1, sep = "") , resGMM.par.opt.j))))) < iter.tol) ) break
+       if((j > 2) && ((j == j.max) | (sum(abs(as.numeric(get(paste("step", j, sep = "") , resGMM.par.opt.j)) - as.numeric(get(paste("step", j-1, sep = "") , resGMM.par.opt.j))))) < iter.tol) ) break
      } else{
-       if((j > 2) && ((j > j.max) | (sum(abs(as.numeric(get(paste("step", j, sep = "") , resGMM.clF.j)) - as.numeric(get(paste("step", j-1, sep = "") , resGMM.clF.j))))) < iter.tol) ) break
+       if((j > 2) && ((j == j.max) | (sum(abs(as.numeric(get(paste("step", j, sep = "") , resGMM.clF.j)) - as.numeric(get(paste("step", j-1, sep = "") , resGMM.clF.j))))) < iter.tol) ) break
      }
    }
 
@@ -1584,7 +1644,8 @@ pdynmc		<- function(
 # }
 
 
- fit 		<-  list(coefficients = coefGMM, residuals = resGMM.Szero.j, fitted.values = resGMM.fitted.j,
+ fit 		<-  list(coefficients = coefGMM, residuals.int = resGMM.Szero.j, residuals = resGMM.Szero2.j,
+   fitted.values.int = resGMM.fitted.j, fitted.values = resGMM.fitted2.j,
    par.optim = resGMM.par.opt.j, ctrl.optim = resGMM.ctrl.opt.j, par.clForm = resGMM.clF.j, iter = resGMM.iter,
    w.mat = resGMM.W.j, H_i = resGMM.H.i, vcov = resGMM.vcov.j, stderr = resGMM.stderr.j,
    zvalue = resGMM.zvalue.j, pvalue = resGMM.pvalue.j,

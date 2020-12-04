@@ -29,9 +29,9 @@ pdynmc(
   varname.reg.ex = NULL,
   lagTerms.reg.ex = NULL,
   maxLags.reg.ex = NULL,
+  inst.reg.ex.expand = TRUE,
   include.x.instr = FALSE,
   varname.reg.instr = NULL,
-  inst.reg.ex.expand = TRUE,
   include.x.toInstr = FALSE,
   varname.reg.toInstr = NULL,
   fur.con = FALSE,
@@ -39,9 +39,9 @@ pdynmc(
   fur.con.lev = NULL,
   varname.reg.fur = NULL,
   lagTerms.reg.fur = NULL,
-  include.dum = TRUE,
+  include.dum = FALSE,
   dum.diff = NULL,
-  dum.lev = TRUE,
+  dum.lev = NULL,
   varname.dum = NULL,
   col_tol = 0.65,
   w.mat = "iid.err",
@@ -83,7 +83,8 @@ moment conditions should be used.}
 
 \item{use.mc.nonlinAS}{A logical variable indicating whether only the nonlinear
 (quadratic) moment conditions in the form proposed by
-\insertCite{AhnSch1995;textual}{pdynmc} should be used (defaults to `TRUE`).}
+\insertCite{AhnSch1995;textual}{pdynmc} should be used (is set to `TRUE`
+when nonlinear moment conditions are employed).}
 
 \item{inst.stata}{A logical variable indicating whether to use the moment
 conditions from equations in levels as in Stata implementations xtabond2
@@ -146,24 +147,23 @@ lags of the (strictly) exogenous covariate(s) used for deriving instruments.
 One integer per covariate needs to be given in the same order as the
 covariate names (defaults to `NULL`).}
 
+\item{inst.reg.ex.expand}{A logical variable that allows for using all past,
+present, and future observations of `varname.reg.ex` to derive instruments
+(defaults to `TRUE`).}
+
 \item{include.x.instr}{A logical variable that allows to include additionl
 IV-type instruments (i.e., include covariates which are used as instruments
 but for which no parameters are estimated; defaults to `FALSE`).}
 
 \item{varname.reg.instr}{One or more character strings denoting the covariate(s)
-in the data set treated as instruments in IV-estimation (defaults to `NULL`).}
-
-\item{inst.reg.ex.expand}{A logical variable that allows for using all past,
-present, and future observations of `varname.reg.ex` to der instruments
-(defaults to `TRUE`).}
+in the data set treated as instruments in estimation (defaults to `NULL`).}
 
 \item{include.x.toInstr}{A logical variable that allows to instrument covariates
-(i.e., include covariates for which parameters are estimated but which are
-not employed in estimation; defaults to `FALSE`).}
+(i.e., covariates which are not used as instruments but for which parameters
+are estimated; defaults to `FALSE`).}
 
 \item{varname.reg.toInstr}{One or more character strings denoting the covariates
-in the data set to be instrumented (i.e., covariates which are used as
-instruments but for which no parameters are estimated; defaults to `FALSE`).}
+in the data set to be instrumented (defaults to `NULL`).}
 
 \item{fur.con}{A logical variable indicating whether further control variables
 (covariates) are included (defaults to `FALSE`).}
@@ -186,10 +186,10 @@ variable names (defaults to `NULL`).}
 the time periods are included (defaults to `FALSE`).}
 
 \item{dum.diff}{A logical variable indicating whether dummy variables are
-included in the equations in first differences (defaults to `FALSE`).}
+included in the equations in first differences (defaults to `NULL`).}
 
 \item{dum.lev}{A logical variable indicating whether dummy variables are
-included in the equations in levels (defaults to `TRUE`).}
+included in the equations in levels (defaults to `NULL`).}
 
 \item{varname.dum}{One or more character strings from which time dummies should
 be derived (can be different from varname.t; defaults to `NULL`).}

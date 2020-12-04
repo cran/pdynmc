@@ -48,6 +48,7 @@ Wonestep.fct		<- function(
   ,use.mc.diff
   ,use.mc.lev
   ,use.mc.nonlin
+  ,use.mc.nonlinAS
   ,dum.diff
   ,dum.lev
   ,fur.con.diff
@@ -56,6 +57,7 @@ Wonestep.fct		<- function(
   ,n
   ,Time
   # ,mc.ref.t
+  ,maxLags.y
   ,max.lagTerms
   ,end.reg
   ,ex.reg
@@ -83,9 +85,6 @@ Wonestep.fct		<- function(
                              diag(x = 1, nrow = Time - max.lagTerms - 2, ncol = Time - max.lagTerms - 1)) -
                        cbind(rep(x = 0, times = Time - max.lagTerms - 1),
                              diag(x = 1, nrow = Time - max.lagTerms - 1, ncol = Time - max.lagTerms - 2)) )
-      H_i.off		<- (cbind(diag(x = -1, nrow = Time - max.lagTerms - 1, ncol = Time - max.lagTerms - 1), 0) +
-                     cbind(rep(x = 0, times = Time - max.lagTerms - 1),
-                           diag(x = 1, nrow = Time - max.lagTerms - 1, ncol = Time - max.lagTerms - 1)) )
     }
 
     if(use.mc.lev | end.reg){												# [M:] part of weighting matrix is identical for 'mc.ref.t' and 'mc.ref.T'
@@ -96,19 +95,35 @@ Wonestep.fct		<- function(
       H_i.mcLev		<- diag(Time - max.lagTerms)
     }
 
-#    if(use.mc.lev & (dum.diff | fur.con.diff) & !(dum.lev | fur.con.lev)){
-#      H_i.off		<- H_i.off
-#    }
 
     if(use.mc.nonlin){
-      H_i.mcNL		<- diag(Time - max.lagTerms - 2)
+      if(use.mc.nonlinAS){
+        H_i.mcNL		<- diag(maxLags.y - max.lagTerms - 1)
+      } else{
+        H_i.mcNL		<- diag(Time - max.lagTerms - 2)
+      }
     }
 
     if((use.mc.diff | dum.diff | fur.con.diff) & (use.mc.lev | dum.lev | fur.con.lev)){
+      if((nrow(Z.temp[[1]]) - ncol(H_i.mcDiff) - if(use.mc.nonlin){ncol(H_i.mcNL)} else{0}) > Time - max.lagTerms - 1){
+        H_i.off	<- (cbind(diag(x = -1, nrow = Time - max.lagTerms - 1, ncol = Time - max.lagTerms - 1), 0) +
+                      cbind(rep(x = 0, times = Time - max.lagTerms - 1),
+                               diag(x = 1, nrow = Time - max.lagTerms - 1, ncol = Time - max.lagTerms - 1)) )
+      } else{
+        if((nrow(Z.temp[[1]]) - ncol(H_i.mcDiff) - if(use.mc.nonlin){ncol(H_i.mcNL)} else{0}) == Time - max.lagTerms - 1){
+          H_i.off	<- (diag(x = -1, nrow = Time - max.lagTerms - 1, ncol = Time - max.lagTerms - 1) +
+                      cbind(rep(x = 0, times = Time - max.lagTerms - 1),
+                      diag(x = 1, nrow = Time - max.lagTerms - 1, ncol = Time - max.lagTerms - 2)) )
+        } else{
+          H_i.off	<- diag(x = -1, nrow = Time - max.lagTerms - 1, ncol = Time - max(2,max.lagTerms) - 1) +
+                       cbind(rep(x = 0, times = Time - max.lagTerms - 1),
+                             diag(x = 1, nrow = Time - max.lagTerms - 1, ncol = Time - max(2,max.lagTerms) - 1))
+        }
+      }
       if(use.mc.nonlin){
         H_i.temp		<- rbind(cbind(H_i.mcDiff, Matrix::Matrix(0, nrow = nrow(H_i.mcDiff), ncol = ncol(H_i.mcNL)), H_i.off),
-                           cbind(Matrix::Matrix(0, nrow = nrow(H_i.mcNL), ncol = ncol(H_i.mcDiff)), H_i.mcNL, Matrix::Matrix(0, nrow = nrow(H_i.mcNL), ncol = ncol(H_i.off))),
-                           cbind(t(H_i.off), Matrix::Matrix(0, nrow = nrow(H_i.mcLev), ncol = ncol(H_i.mcNL)), H_i.mcLev) )
+                         cbind(Matrix::Matrix(0, nrow = nrow(H_i.mcNL), ncol = ncol(H_i.mcDiff)), H_i.mcNL, Matrix::Matrix(0, nrow = nrow(H_i.mcNL), ncol = ncol(H_i.off))),
+                         cbind(t(H_i.off), Matrix::Matrix(0, nrow = nrow(H_i.mcLev), ncol = ncol(H_i.mcNL)), H_i.mcLev) )
       } else{
         H_i.temp		<- rbind(cbind(H_i.mcDiff, H_i.off), cbind( t(H_i.off), H_i.mcLev) )
       }
@@ -580,8 +595,8 @@ gmmDat.fct		<- function(
 #' @keywords internal
 #'
 gmmObj.fct		<- function(
-  j
-  ,param
+  param
+  ,j
   ,y_m1
   ,X_m1
   ,dy
@@ -598,6 +613,7 @@ gmmObj.fct		<- function(
   ,dum.diff
   ,fur.con.diff
   ,max.lagTerms
+  ,maxLags.y
   ,end.reg
   ,ex.reg
   ,pre.reg
@@ -676,9 +692,10 @@ gmmObj.fct		<- function(
 
     if(use.mc.nonlin){
       if(use.mc.nonlinAS){
-        u.vec.2_lev.diff	<- rep(gmmDat.parDep$u.hat_t[(Time-1) + (i-1)*(Time-1)], times = length(max.lagTerms:(Time-3) + (i-1)*(Time-2)))*
-          gmmDat.parDep$du.hat[max.lagTerms:(Time-3) + (i-1)*(Time-2)]
-        y.vec.2_lev.diff	<- gmmDat.parDep$fitted.diff[max.lagTerms:(Time-3) + (i-1)*(Time-2)]
+#        u.vec.2_lev.diff	<- rep(gmmDat.parDep$u.hat_t[(Time-1) + (i-1)*(Time-1)], times = length(max.lagTerms:(Time-3) + (i-1)*(Time-2)))*
+        u.vec.2_lev.diff	<- rep(gmmDat.parDep$u.hat_t[(Time-1) + (i-1)*(Time-1)], times = maxLags.y - max.lagTerms -1)*
+          gmmDat.parDep$du.hat[max.lagTerms:(Time-3) + (i-1)*(Time-2)][if(maxLags.y - (max.lagTerms+2) + 1 < Time - (max.lagTerms+2)){-(1:(Time - (max.lagTerms+2) - (maxLags.y - (max.lagTerms+2)+1)))}]
+        y.vec.2_lev.diff	<- gmmDat.parDep$fitted.diff[max.lagTerms:(Time-3) + (i-1)*(Time-2)][if(maxLags.y - (max.lagTerms+2) + 1 < Time - (max.lagTerms+2)){-(1:(Time - (max.lagTerms+2) - (maxLags.y - (max.lagTerms+2)+1)))}]
 
       } else{
         u.vec.2_lev.diff	<- gmmDat.parDep$u.hat_t[(max.lagTerms + 2):(Time-1) + (i-1)*(Time-1)]*
@@ -688,8 +705,10 @@ gmmObj.fct		<- function(
     }
 
     if(use.mc.lev & (include.y | end.reg)){
-      u.vec.3_lev		<- gmmDat.parDep$u.hat_t[(max.lagTerms):(Time-1) + (i-1)*(Time-1)]
-      y.vec.3_lev		<- gmmDat.parDep$fitted.lev[(max.lagTerms):(Time-1) + (i-1)*(Time-1)]
+      u.vec.3_lev		<- gmmDat.parDep$u.hat_t[(max(2,max.lagTerms)):(Time-1) + (i-1)*(Time-1)]
+#      u.vec.3_lev		<- gmmDat.parDep$u.hat_t[(max.lagTerms):(Time-1) + (i-1)*(Time-1)]
+      y.vec.3_lev		<- gmmDat.parDep$fitted.lev[(max(2,max.lagTerms)):(Time-1) + (i-1)*(Time-1)]
+#      y.vec.3_lev		<- gmmDat.parDep$fitted.lev[(max.lagTerms):(Time-1) + (i-1)*(Time-1)]
     }
 
     if((use.mc.lev & (include.y | end.reg) & (ex.reg | pre.reg)) | dum.lev | fur.con.lev){
@@ -713,14 +732,14 @@ gmmObj.fct		<- function(
   S.temp.zeros			<- lapply(lapply(Sy.temp, `[[`, 1), function(x) ifelse(is.na(x), yes = 0, no = x))
 
   #  assign("Szero.j", S.temp.zeros, pos = sys.frame(which = -2))
-  assign("Szero.j", S.temp.zeros, envir = env)
+#  assign("Szero.j", S.temp.zeros, envir = env)
   #  assign("Szero.j", S.temp.zeros, pos = 1)
   #  assign("Szero.j", S.temp.zeros, envir = parent.frame())
 
   fitted.temp			<- lapply(Sy.temp, `[[`, 2)
 
   #  assign("fitted.j", fitted.temp, pos = sys.frame(which = 2))
-  assign("fitted.j", fitted.temp, envir = env)
+#  assign("fitted.j", fitted.temp, envir = env)
   #  assign("fitted.j", fitted.temp, pos = 1)
   #  assign("fitted.j", fitted.temp, envir = parent.frame())
 
@@ -807,7 +826,8 @@ sub.clForm.fct		<- function(
   ,varname.i
   ,varname
   ,varname.y
-  ,max.lagTerms												# [M:] renamed since 't' is already defined
+  ,max.lagTerms
+  ,maxLags.y
   ,Time
   ,data.temp
   ,use.mc.diff
@@ -817,23 +837,38 @@ sub.clForm.fct		<- function(
   ,dum.lev
   ,fur.con.lev
   ,use.mc.nonlin
+  ,use.mc.nonlinAS
+  ,include.x
+  ,pre.reg
+  ,ex.reg
 ){
 
   if(use.mc.diff | dum.diff | fur.con.diff){
     dat.temp_1diff				<- apply(X = data.temp[-c(1:(max.lagTerms)), ], MARGIN = 2, FUN = diff, args = list(differences=1)) *
-      ( (diff(data.temp[, varname.y], differences = max.lagTerms + 1)) * is.na(diff(data.temp[, varname.y], differences = max.lagTerms + 1)) + 1 )
+      as.logical( ( (diff(data.temp[, varname.y], differences = max.lagTerms + 1)) * (diff(data.temp[, varname.y], differences = max.lagTerms + 1)) + 1) )
     colnames(dat.temp_1diff)			<- NULL
     rownames(dat.temp_1diff)			<- NULL
   }
   if(use.mc.nonlin){
-    dat.temp_2nl					<- apply(X = data.temp[-c(1:(max.lagTerms), Time), ], MARGIN = 2, FUN = diff, args = list(differences=1)) *
-      ( (diff(data.temp[, varname.y], differences = max.lagTerms + 2)) * is.na(diff(data.temp[, varname.y], differences = max.lagTerms + 2)) + 1 )
+    if(use.mc.nonlinAS){
+      dat.temp_2nl			<- apply(X = data.temp[-c(1:(max.lagTerms), Time), ], MARGIN = 2, FUN = diff, args = list(differences=1)) *
+        as.logical( ( (diff(data.temp[, varname.y], differences = max.lagTerms + 2)) * (diff(data.temp[, varname.y], differences = max.lagTerms + 2)) + 1) )
+      dat.temp_2nl      <- dat.temp_2nl[if(maxLags.y - (max.lagTerms+2) + 1 < Time - (max.lagTerms+2)){-(1:(Time - (max.lagTerms+2) - (maxLags.y - (max.lagTerms+2)+1)))}, ]
+    } else{
+      dat.temp_2nl					<- apply(X = data.temp[-c(1:(max.lagTerms), Time), ], MARGIN = 2, FUN = diff, args = list(differences=1)) *
+        as.logical( ( (diff(data.temp[, varname.y], differences = max.lagTerms + 2)) * (diff(data.temp[, varname.y], differences = max.lagTerms + 2)) + 1) )
+    }
     colnames(dat.temp_2nl)			<- NULL
     rownames(dat.temp_2nl)			<- NULL
   }
   if(use.mc.lev | dum.lev | fur.con.lev){
-    dat.temp_3lev					<- as.matrix(data.temp[-c(1:(max.lagTerms)), ]) *
-      ( diff(data.temp[, varname.y], differences = max.lagTerms) * is.na(diff(data.temp[, varname.y], differences = max.lagTerms)) + 1 )
+    if(max.lagTerms == 1 & (dum.lev | fur.con.lev | (include.x & (pre.reg | ex.reg)))){
+      dat.temp_3lev					<- as.matrix(data.temp[-c(1:(max.lagTerms)), ]) *
+        as.logical( ( diff(data.temp[, varname.y], differences = max.lagTerms) * is.na(diff(data.temp[, varname.y], differences = max.lagTerms))) + 1 )
+    } else{
+      dat.temp_3lev					<- as.matrix(data.temp[-c(1:max(2,max.lagTerms)), ]) *
+        as.logical( ( diff(data.temp[, varname.y], differences = max(2,max.lagTerms)) * is.na(diff(data.temp[, varname.y], differences = max(2,max.lagTerms))) + 1 ) )
+    }
     colnames(dat.temp_3lev)			<- NULL
     rownames(dat.temp_3lev)			<- NULL
   }
@@ -882,12 +917,17 @@ dat.closedFormExpand.fct		<- function(
   ,use.mc.diff
   ,use.mc.lev
   ,use.mc.nonlin
+  ,use.mc.nonlinAS
   ,dum.diff
   ,dum.lev
   ,fur.con.diff
   ,fur.con.lev
   ,max.lagTerms
+  ,maxLags.y
   ,Time
+  ,include.x
+  ,pre.reg
+  ,ex.reg
 ){
 
   varnames.temp	<- if( !(is.null(varname.reg.instr)) | !(is.null(varname.reg.toInstr)) ){
@@ -895,11 +935,12 @@ dat.closedFormExpand.fct		<- function(
       ,if(!(is.null(varname.reg.toInstr))){ varname.reg.toInstr }, varname.y )
   } else{ c(varname.reg.estParam, varname.y) }
 
-  data.temp		<- dat.na[dat.na[, varname.i] == i, varnames.temp]
+  data.temp		<- dat.na[dat.na[, varname.i] == as.numeric(i), varnames.temp]
 
   dat.temp		<- do.call(what = sub.clForm.fct, args = list(i = i, varname.i = varname.i, varname = varnames.temp, varname.y = varname.y
-                                                          ,max.lagTerms = max.lagTerms, Time = Time, data.temp = data.temp, use.mc.diff = use.mc.diff, dum.diff = dum.diff, fur.con.diff = fur.con.diff
-                                                          ,use.mc.lev = use.mc.lev, dum.lev = dum.lev, fur.con.lev = fur.con.lev, use.mc.nonlin = use.mc.nonlin))
+                                                          ,max.lagTerms = max.lagTerms, maxLags.y = maxLags.y, Time = Time, data.temp = data.temp, use.mc.diff = use.mc.diff, dum.diff = dum.diff, fur.con.diff = fur.con.diff
+                                                          ,use.mc.lev = use.mc.lev, dum.lev = dum.lev, fur.con.lev = fur.con.lev, use.mc.nonlin = use.mc.nonlin, use.mc.nonlinAS = use.mc.nonlinAS
+                                                          ,include.x = include.x, pre.reg = pre.reg, ex.reg = ex.reg))
 
   return(dat.temp)
 }
@@ -915,6 +956,39 @@ dat.closedFormExpand.fct		<- function(
 
 
 
+
+#' @keywords internal
+#'
+dat.expand.fct		<- function(
+  i
+  ,dat.na
+  ,varname.i
+  ,varname.reg.instr
+  ,varname.reg.toInstr
+  ,varname.y
+  ,varname.reg.estParam
+  ,max.lagTerms
+  ,Time
+){
+
+  varnames.temp	<- if( !(is.null(varname.reg.instr)) | !(is.null(varname.reg.toInstr)) ){
+    c(if(!(is.null(varname.reg.instr))){ varname.reg.estParam[!(varname.reg.estParam %in% varname.reg.instr)] }
+      ,if(!(is.null(varname.reg.toInstr))){ varname.reg.toInstr }, varname.y )
+  } else{ c(varname.reg.estParam, varname.y) }
+
+  data.temp		<- dat.na[dat.na[, varname.i] == as.numeric(i), varnames.temp]
+
+  dat.temp		<- data.temp[-c(1:max.lagTerms), ]
+
+  reg.temp						<- as.matrix(dat.temp[, !(varnames.temp %in% varname.y)])
+  colnames(reg.temp)  <- NULL
+  rownames(reg.temp)  <- NULL
+  dep.temp						<- as.matrix(dat.temp[, varnames.temp %in% varname.y, drop = FALSE])
+  colnames(dep.temp)  <- NULL
+  rownames(dep.temp)  <- NULL
+
+  return(list(reg.temp = Matrix::Matrix(reg.temp), dep.temp = Matrix::Matrix(dep.temp)))
+}
 
 
 

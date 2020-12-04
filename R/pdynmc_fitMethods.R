@@ -945,28 +945,56 @@ optimIn.pdynmc		<- function(object, step = object$iter, ...){
 
 #' Plot Coefficient Estimates and Corresponding Ranges of Fitted Model.
 #'
-#' \code{plot.pdynmc} Plot coefficient estimates and corresponding
-#'    coefficient estimate ranges for objects of class `pdynmc`.
+#' \code{plot.pdynmc} Plot methods for objects of class `pdynmc`. The
+#'    available plot options visualize: Fitted values versus residuals,
+#'    coefficient ranges across GMM iterations, coefficient paths and
+#'    objective function values across GMM iterations as proposed by
+#'    \insertCite{HanLee2020inference;textual}{pdynmc}.
 #'
 #' @param x An object of class `pdynmc`. The function requires
 #'    twostep or iterative GMM estimates.
-#' @param type Wether to plot fitted values against residuals (argument
-#'    'fire'; default) or coefficient ranges (argument 'coef.range';
-#'    this requires twostep or iterative GMM estimates.
+#' @param type Whether to plot fitted values against residuals (argument
+#'    'fire'; default), coefficient ranges (argument 'coef.range';
+#'    this requires twostep or iterative GMM estimates), path of
+#'    coefficient estimates across GMM iterations (argument 'coef.path';
+#'    this requires twostep or iterative GMM estimates).
 #' @param include.dum Include estimates of parameters corresponding to time
-#'    dummies (defaults to 'FALSE'; requires 'type = coef.range').
+#'    dummies (defaults to 'black'; requires 'type = coef.range').
 #' @param include.fur.con Include estimates of parameters corresponding to
 #'    further controls (defaults to 'FALSE'; requires 'type = coef.range').
 #' @param col.coefRange Specify color for plotting range of coefficient
-#'    estimates (defaults to 'black'; requires 'type = coef.range').
+#'    estimates (defaults to 'NULL'; requires 'type = coef.range').
 #' @param col.coefInitial Specify color for plotting initial coefficient
 #'    estimates (defaults to 'darkgrey'; requires 'type = coef.range').
 #' @param col.coefEst Specify color for plotting coefficient estimate
 #'    (defaults to 'royalblue'; requires 'type = coef.range').
-#' @param boxplot.coef Wether to draw boxplots for coefficient estimates
+#' @param omit1step Omit coefficient estimates from one-step GMM
+#'    estimation in coefficient range plot. The argument can after
+#'    obtaining coefficient estimates from numerical optimization
+#'    methods to exclude the randomly drawn starting values from the
+#'    plotted coefficient range (defaults to `FALSE`). Set to `TRUE` to
+#'    exert the option; this argument requires iterative GMM estimates
+#'    and argument 'type = coef.range'.
+#' @param boxplot.coef Whether to draw boxplots for coefficient estimates
 #'    (defaults to 'FALSE'); requires iterative GMM with at least 10
 #'    iterations and argument 'type = coef.range'. Proceed with caution
 #'    as this argument is experimental.
+#' @param co Character string denoting the variable name(s) for which to
+#'    plot the path of coefficient estimate(s) across GMM iterations
+#'    (defaults to 'NULL') as proposed in \insertCite{HanLee2020inference;textual}{pdynmc};
+#'    if no coefficient name is given, all coefficient paths are plotted;
+#'    requires at least two iterations and argument 'type = coef.path'.
+#' @param add.se.approx A logical variable indicating if standard errors
+#'    should be added to the plot of the path of coefficient estimate(s)
+#'    across GMM iterations (defaults to 'NULL'); requires at least
+#'    two iterations and argument 'type = coef.path'. This option is
+#'    only available when plotting a single coefficient path (i.e.,
+#'    when 'co' contains only a single variable name).
+#' @param conf.lev A numeric variable indicating the confidence
+#'    level for approximating standard errors in the plot of the path
+#'    of coefficient estimate(s) across GMM iterations (defaults to
+#'    0.95; sensible values lie in the interval ]0,1[); requires
+#'    argument 'type = coef.path' and argument 'add.se.approx = TRUE'.
 #' @param ... further arguments.
 #'
 #' @return Plot fitted values against residuals ('type = fire') or
@@ -982,10 +1010,16 @@ optimIn.pdynmc		<- function(object, step = object$iter, ...){
 #' @importFrom graphics legend
 #' @importFrom graphics lines
 #' @importFrom graphics plot
+#' @importFrom graphics points
+#' @importFrom grDevices colorRampPalette
+#' @importFrom stats qnorm
 #'
 #' @seealso
 #'
 #' \code{\link{pdynmc}} for fitting a linear dynamic panel data model.
+#'
+#' @references
+#' \insertAllCited{}
 #'
 #' @examples
 #' ## Load data from plm package
@@ -1009,6 +1043,7 @@ optimIn.pdynmc		<- function(object, step = object$iter, ...){
 #'     opt.meth = "none")
 #'  plot(m1)
 #'  plot(m1, type = "coef.range")
+#'  plot(m1, type = "coef.path")
 #' }
 #'
 #' \donttest{
@@ -1032,20 +1067,25 @@ optimIn.pdynmc		<- function(object, step = object$iter, ...){
 #'     opt.meth = "none")
 #'  plot(m1)
 #'  plot(m1, type = "coef.range")
+#'  plot(m1, type = "coef.path")
 #' }
 #' }
 #'
 #'
 plot.pdynmc		<- function(
-  x,
-  type = "fire",
-  include.dum = FALSE,
-  include.fur.con = FALSE,
-  col.coefRange = 1,
-  col.coefInitial = "darkgrey",
-  col.coefEst = "royalblue",
-  boxplot.coef = FALSE,
-  ...
+  x
+  ,type = "fire"
+  ,include.dum = FALSE
+  ,include.fur.con = FALSE
+  ,col.coefRange = 1
+  ,col.coefInitial = "darkgrey"
+  ,col.coefEst = "royalblue"
+  ,omit1step = FALSE
+  ,boxplot.coef = FALSE
+  ,co = NULL
+  ,add.se.approx = NULL
+  ,conf.lev = 0.95
+  ,...
 ){
 
   if(type == "fire"){
@@ -1054,13 +1094,16 @@ plot.pdynmc		<- function(
       stop("Use only with \"pdynmc\" objects.")
     }
 
-    fitteds <- unlist(x$fitted.values)
-    resids  <- unlist(x$residuals)
+    step.temp <- x$iter
+    fitteds <- unlist(x$fitted.values[[step.temp]])
+    resids  <- unlist(x$residuals[[step.temp]])
 
     y.range	<- c(-1, 1)*max(abs(resids))
-    graphics::plot(x = fitteds, y = resids, ylim = y.range, xlab = "Fitted Values", ylab = "Residuals",
-         main	= paste("Fitted Residual Plot of", substitute(x)), col = "grey60", ...)
-    abline(h = 0)
+    graphics::plot(x = fitteds, y = resids, ylim = y.range, xlab = "Fitted values", ylab = "Residuals",
+         main	= paste("Fitted vs. residual plot of", substitute(x)), col = "grey60", ...)
+    graphics::lines(x = c(par("usr")[1], par("usr")[2]), y = c(0,0), col = 1, lty = 2)
+#    graphics::lines(x = range(fitteds, na.rm = TRUE), y = c(0,0), col = 1, lty = 2)
+#    graphics::abline(h = 0)
   }
 
 
@@ -1075,6 +1118,13 @@ plot.pdynmc		<- function(
       boxplot.coef <- FALSE
       warning("Argument 'boxplot.coef' was ignored as coefficient boxplots are only displayed for a minimum of 10 iterations.")
     }
+
+    if(x$iter == 2 & omit1step){
+      stop("Cannot compute range from two-step GMM estimates after removing one-step estmates.")
+    }
+
+    parMar <- par()$mar
+    par(mar=par()$mar + c(0,0,0,8), xpd=TRUE)
 
     if(!include.dum | !include.fur.con){
       if(!include.dum && !include.fur.con){
@@ -1101,6 +1151,9 @@ plot.pdynmc		<- function(
     n.coef    <- length(coef.est)
 
     coef.mat  <- do.call(what = cbind, coef.list)
+    if(omit1step){
+      coef.mat <- coef.mat[,-1]
+    }
 
     if(nrow(coef.mat) == 1){
       if(boxplot.coef){
@@ -1114,12 +1167,12 @@ plot.pdynmc		<- function(
         graphics::plot(x = rep(n.coef, times = 2), y = c(coef.mat.min, coef.mat.max), type = "n", xaxt = "n", xaxt = "n", xlab = "", ylab = "", ...)
         graphics::lines(x = rep(n.coef, times = 2), y = c(coef.mat.min, coef.mat.max), col = col.coefRange, lwd = 1, lty = 2, ...)
         graphics::points(x = n.coef, y = coef.mat[,1], col = col.coefInitial, pch = 1, ...)
-        graphics::points(x = x.vec[i], y = coef.est[i], col = col.coefEst, pch = 18, ...)
+        graphics::points(x = n.coef, y = coef.est, col = col.coefEst, pch = 18, ...)
         graphics::axis(side = 1, at = c(1:n.coef), labels = paste(var.names))
       }
     } else{
       if(boxplot.coef){
-        graphics::boxplot(t(coef.mat), xaxt = "n", xlabel = "", ylabel = "", ...)
+        graphics::boxplot(t(coef.mat), xaxt = "n", xlabel = "", ylabel = "Estimate", ...)
         for(i in 1:n.coef){
           graphics::points(x = x.vec[i], y = coef.mat[i,1], col = col.coefInitial, pch = 1, ...)
           graphics::lines(x = c(i-0.2, i+0.2), y = rep(coef.est[i], times = 2), col = col.coefEst, lwd = 2, ...)
@@ -1127,7 +1180,7 @@ plot.pdynmc		<- function(
       } else{
         coef.mat.min.max <- cbind(apply(X = coef.mat, MARGIN = 1, FUN = min), apply(X = coef.mat, MARGIN = 1, FUN = max))
         x.vec        <- 1:n.coef
-        graphics::plot(x = rep(x.vec, each = 2), y = t(coef.mat.min.max), type = "n", xlim = c(0.7, n.coef+0.3), xaxt = "n", xaxt = "n", xlab = "", ylab = "", ...)
+        graphics::plot(x = rep(x.vec, each = 2), y = t(coef.mat.min.max), type = "n", xlim = c(0.7, n.coef+0.3), xaxt = "n", xaxt = "n", xlab = "", ylab = "Estimate", ...)
         for(i in 1:n.coef){
           graphics::lines(x = rep(x.vec[i], times = 2), y = coef.mat.min.max[i,], col = col.coefRange, lwd = 1, lty = 2, ...)
           graphics::points(x = x.vec[i], y = coef.mat[i,1], col = col.coefInitial, pch = 1, ...)
@@ -1136,11 +1189,116 @@ plot.pdynmc		<- function(
         graphics::axis(side = 1, at = c(1:n.coef), labels = paste(var.names))
       }
     }
-    abline(h = 0)
-    graphics::legend("bottomleft", col = c(col.coefEst, col.coefInitial, col.coefRange), lwd = c(NA,NA,1), pch = c(18,1,NA), lty = c(NA,NA,2), legend = c("coeff. est.", "coeff. initial", "coeff. range"), bty = "n")
+#    abline(h = 0)
+#    graphics::legend("bottomleft", col = c(col.coefEst, col.coefInitial, col.coefRange), lwd = c(NA,NA,1), pch = c(18,1,NA), lty = c(NA,NA,2), legend = c("coeff. est.", "coeff. initial", "coeff. range"), bty = "n")
+    graphics::legend("topright", inset = c(-0.35,0),
+#      x = n.coef + 1, y = max(coef.mat),
+                   legend = c("coef. est.", "coef. initial", "coef. range"), col = c(col.coefEst, col.coefInitial, col.coefRange),
+                   lwd = c(NA,NA,1), pch = c(18,1,NA), lty = c(NA,NA,2), bty = "n", cex = 0.9, horiz = FALSE)
+    par(mar = parMar)
   }
 
+
+
+
+  if(type == "coef.path"){
+    if(!inherits(x, what = "pdynmc")){
+      stop("Use only with \"pdynmc\" objects.")
+    }
+    parMar <- par()$mar
+    par(mar = par()$mar + c(0, 0, 0, 8), xpd = TRUE)
+    if (is.null(co)) {
+      if(!include.dum | !include.fur.con){
+        if(!include.dum && !include.fur.con){
+          varnames.ind <- !(x$data$varnames.reg %in% x$data$varnames.dum) & !(x$data$varnames.reg %in% x$data$varnames.reg.fur)
+        } else {
+          if (!include.dum) {
+            varnames.ind <- !(x$data$varnames.reg %in% x$data$varnames.dum)
+          } else {
+            varnames.ind <- !(x$data$varnames.reg %in% x$data$varnames.reg.fur)
+          }
+        }
+      } else {
+        varnames.ind <- rep(TRUE, times = length(x$data$varnames.reg))
+      }
+      co <- x$data$varnames.reg[varnames.ind]
+    }
+    if(length(co) == 1 & sum(add.se.approx, is.null(add.se.approx))){
+      add.se.approx <- TRUE
+      plot.se <- TRUE
+    } else {
+      plot.se <- FALSE
+      if(length(co) > 1 & sum(add.se.approx)){
+        warning("Argument 'add.se.approx' is only available when plotting one coefficient path and was set to 'FALSE'")
+      }
+    }
+    col.pal <- c(col.coefEst, col.coefInitial)
+    coef.est <- if(sum(!is.na(x$par.optim[[x$iter]])) > 0) { x$par.optim } else { x$par.clForm }
+    coef.mat <- Reduce(rbind, coef.est)[, x$data$varnames.reg %in% co]
+    quant <- abs(stats::qnorm(p = (1 - conf.lev)/2, mean = 0, sd = 1))
+    se.est <- x$stderr
+    se.mat <- Reduce(rbind, se.est)[, x$data$varnames.reg %in% co]
+    if(length(co) > 1){
+      col.set <- (grDevices::colorRampPalette(col.pal))(length(co) + 1)
+    } else {
+      col.set <- col.pal
+      coef.mat <- as.matrix(coef.mat, ncol = 1)
+      se.mat <- as.matrix(se.mat, ncol = 1)
+    }
+    coef.range <- range(coef.mat, coef.mat[nrow(coef.mat), ] + quant * se.mat[nrow(se.mat), ], coef.mat[nrow(coef.mat), ] - quant * se.mat[nrow(se.mat), ])
+    ord.min <- min(coef.range)
+    ord.max <- max(coef.range)
+#      if(sum(!is.na(x$par.optim[[x$iter]])) > 0){
+#        objective <- matrix(data = unlist(x[["ctrl.optim"]]),nrow = length(x[["ctrl.optim"]]), byrow = TRUE, dimnames = list(NULL, names(x[["ctrl.optim"]][["step1"]])))
+#        obj.values <- objective[, "value"]
+#        obj.min <- min(obj.values)
+#        obj.max <- max(obj.values)
+#        a <- (ord.min * obj.max - ord.max * obj.min)/(obj.max - obj.min)
+#        b <- (ord.max - ord.min)/(obj.max - obj.min)
+#        obj.rescaled <- a + b * obj.values
+#      } else {
+#        obj.values <- NULL
+#        ord.limits <- c(ord.min, ord.max)
+#      }
+    plot(x = rep(1:nrow(coef.mat), times = ncol(coef.mat)),
+         y = coef.mat, xlab = "Iteration", ylab = "Estimate",
+         xaxt = "n", xlim = c(1 - 0.25, nrow(coef.mat) +
+                                0.25), ylim = coef.range, type = "n", main = paste("Coefficient estimates over ",
+                                                                                   x$iter, " iterations", sep = ""))
+    axis(side = 1, at = c(1:x$iter))
+#     if (sum(!is.na(x$par.optim[[x$iter]])) > 0) {
+#       graphics::lines(x = 1:nrow(coef.mat), y = obj.rescaled, type = "b", pch = 20, col = col.coefInitial)
+#       graphics::axis(side = 4, at = c(ord.min, ord.max), labels = round(c(obj.min, obj.max), digits = 1),
+#           col = col.set[length(col.set)], col.ticks = col.set[length(col.set)], col.lab = col.set[length(col.set)],
+#           col.axis = col.set[length(col.set)])
+#       graphics::mtext("Objective function value", side = 4, col = col.coefInitial)
+#        }
+    for(i in 1:ncol(coef.mat)){
+      graphics::lines(x = 1:nrow(coef.mat), y = coef.mat[, i], type = "l", col = col.set[i])
+      graphics::points(x = 1:nrow(coef.mat), y = coef.mat[, i], type = "b", pch = 19, col = col.set[i])
+    }
+    if(plot.se){
+      graphics::lines(x = rep(nrow(coef.mat), times = 2),
+                      y = c(coef.mat[nrow(coef.mat)] - quant * se.mat[nrow(coef.mat)], coef.mat[nrow(coef.mat)] + quant * se.mat[nrow(coef.mat)]),
+                      type = "l", lty = 3, col = col.set[i])
+      graphics::lines(x = c(nrow(coef.mat) - nrow(coef.mat)/20, nrow(coef.mat) + nrow(coef.mat)/20),
+                      y = rep(coef.mat[nrow(coef.mat)] - quant * se.mat[nrow(coef.mat)], times = 2), type = "l",
+                      lty = 1, col = col.set[i], lwd = 2)
+      graphics::lines(x = c(nrow(coef.mat) - nrow(coef.mat)/20, nrow(coef.mat) + nrow(coef.mat)/20),
+                      y = rep(coef.mat[nrow(coef.mat)] + quant * se.mat[nrow(coef.mat)], times = 2), type = "l",
+                      lty = 1, col = col.set[i], lwd = 2)
+    }
+    graphics::legend("topright", inset = c(-0.35, 0), legend = co, col = col.set,
+#		   if(sum(!is.na(x$par.optim[[x$iter]])) > 0){ c(co, "obj.fct") } else { co },
+#			 if(sum(!is.na(x$par.optim[[x$iter]])) > 0){ c(col.set, col.coefInitial) } else { col.set },
+      pch = 19, lty = 1, bty = "n", cex = 0.9, horiz = FALSE)
+    par(mar = parMar)
+  }
 }
+
+
+
+
 
 
 

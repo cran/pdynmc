@@ -1,3 +1,25 @@
+# pdynmc version 0.9.3
+
+Minor update of version 0.9.2 that fixes minor bugs in estimation function and helper functions for setting up instrument and weighting matrix; additionally, coefficient path plots are added to the plot method and existing plot methods are adjusted.
+
+
+### pdynmc
+* Adjust default arguments and corresponding documentation
+* Fix bug in setting up of weighting matrix
+* Fix bug when imposing maximum lags from which instruments are derived
+* Add check functions
+* Adjust checks when setting up instrument matrix
+* Residuals and fitted values are added to pdynmc object (besides the previously available internal residuals and fitted values).
+
+
+### plot.pdynmc
+* Plotting coefficient paths across GMM iterations (including approximate standard errors).
+* Plot methods for creating fitted vs. residual plots and coefficient range plots are adjusted.
+
+
+
+
+
 # pdynmc version 0.9.2
 
 Minor update of version 0.9.1 that adds additional functionality for setting up the instrument matrix and adjusts the instrument count displayed by the summary function.

@@ -141,7 +141,7 @@ wald.fct 		<- function(
   n					<- object$data$n
   Time					<- object$data$Time
   n.inst				<- object$data$n.inst
-  Szero.j				<- get(paste("step", object$iter, sep = ""), object$residuals)
+  Szero.j				<- get(paste("step", object$iter, sep = ""), object$residuals.int)
 
 
 
@@ -328,7 +328,7 @@ jtest.fct		<- function(
   }
 
   coef.est		<- ifelse((sapply(get(paste("step", object$iter, sep = ""), object$par.optim), FUN = is.na)), yes = get(paste("step", object$iter, sep = ""), object$par.clForm), no = get(paste("step", object$iter, sep = ""), object$par.optim) )
-  Szero.j		<- get(paste("step", object$iter, sep = ""), object$residuals)
+  Szero.j		<- get(paste("step", object$iter, sep = ""), object$residuals.int)
   Z.temp		<- object$data$Z
   W.j			<- get(paste("step", object$iter, sep = ""), object$w.mat)
   n.inst		<- object$data$n.inst
@@ -336,7 +336,7 @@ jtest.fct		<- function(
 
   K.tot			<- length(coef.est)
   N				<- length(do.call(what = "c", Szero.j))
-  tzu				<- as.numeric(Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), Z.temp, Szero.j)))
+  tzu				<- as.numeric(Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), Z.temp, Szero.j, SIMPLIFY = FALSE)))
   stat			<- as.numeric(crossprod(tzu, t(crossprod(tzu, W.j))))
   names(stat)		<- "chisq"
   p				<- sum(n.inst)
@@ -466,7 +466,7 @@ mtest.fct 		<- function(
   }
 
   estimation	<- object$data$estimation
-  Szero.j			<- get(paste("step", object$iter, sep = ""), object$residuals)
+  Szero.j			<- get(paste("step", object$iter, sep = ""), object$residuals.int)
   Z.temp			<- object$data$Z
   vcov.est		<- get(paste("step", object$iter, sep = ""), object$vcov)
   W.j				  <- get(paste("step", object$iter, sep = ""), object$w.mat)
