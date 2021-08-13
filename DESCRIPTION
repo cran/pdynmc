@@ -2,8 +2,8 @@ Package: pdynmc
 Type: Package
 Title: Moment Condition Based Estimation of Linear Dynamic Panel Data
         Models
-Version: 0.9.4
-Date: 2021-06-14
+Version: 0.9.5
+Date: 2021-08-13
 Authors@R: c(person("Markus", "Fritsch", role = c("aut", "cre"),
 		email = "Markus.Fritsch@uni-Passau.de"),
 	person("Joachim", "Schnurbus", role = c("aut"),
@@ -49,6 +49,6 @@ Encoding: UTF-8
 Classification/JEL: C23, C26, C87
 RoxygenNote: 7.1.1
 NeedsCompilation: no
-Packaged: 2021-06-14 13:17:44 UTC; fritsc13
+Packaged: 2021-08-13 11:35:11 UTC; fritsc13
 Repository: CRAN
-Date/Publication: 2021-06-14 13:50:13 UTC
+Date/Publication: 2021-08-13 14:00:08 UTC

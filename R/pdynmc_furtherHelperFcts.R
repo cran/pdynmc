@@ -294,19 +294,17 @@ Wonestep.fct		<- function(
 
   if(inst.thresh < sum(n.inst)){
     W1		<- MASS::ginv(as.matrix(W1.inv))
-    #   W1		<- Ginv(as.matrix(W1.inv))
+    #   W1		<- matlib::Ginv(as.matrix(W1.inv))
     #   W1		<- solve(qr(as.matrix(W1.inv)), LAPACK = TRUE)
-    #   W1.alt		<- Ginv(as.matrix(W1.inv))
     #   W1.alt2		<- solve(qr(as.matrix(W1.inv)), LAPACK = TRUE)		# [M:] ~ R-equivalent to the function used in Stata to obtain the pseudoinverse; calculations in R show that the matrix does not meet the requirements for a pseudoinverse!!
   } else{
     W1		<- MASS::ginv(as.matrix(W1.inv))
-    #   W1		<- Ginv(as.matrix(W1.inv))
+    #   W1		<- matlib::Ginv(as.matrix(W1.inv))
     #   W1		<- solve(as.matrix(W1.inv))
     #   W1.alt		<- solve(W1.inv)
-    #   W1.alt2		<- Ginv(as.matrix(W1.inv))
   }
   ########################################
-  # [M:] the 'pgmm' function uses the minimum eigenvalue to dtermine if a generalized inverse is to be used;
+  # [M:] the 'pgmm' function uses the minimum eigenvalue to determine if a generalized inverse is to be used;
   #	the following code is taken from 'pgmm':
   #-------
   # minevA2 <- min(abs(Re(eigen(A2)$values)))
@@ -532,7 +530,7 @@ gmmDat.fct		<- function(
 
   #	Note:	(1:n)*(T - 1)	is index of all last (time period for each n) observations w.r.t. to the delta-vectors
   #	Note:	((0:(n - 1))*(T - 1)) + 1	is index of all first (time period for each n) observations w.r.t. to the delta-vectors
-  # [M: one observation is lost due to differencing --> delta vector is 'N' elements shorter than data set; 3rd to T-th period are required for each individual]
+  # [M: one observation is lost due to differencing --> delta vector is 'N' elements shorter than dataset; 3rd to T-th period are required for each individual]
 
 
   return(gmmDat)
@@ -647,7 +645,7 @@ gmmObj.fct		<- function(
 
   #	Note:	(1:n)*(T - 1)	is index of all last (time period for each n) observations w.r.t. to the delta-vectors
   #	Note:	((0:(n - 1))*(T - 1)) + 1	is index of all first (time period for each n) observations w.r.t. to the delta-vectors
-  # [M: one observation is lost due to differencing --> delta vector is 'N' elements shorter than data set; 3rd to T-th period are required for each individual]
+  # [M: one observation is lost due to differencing --> delta vector is 'N' elements shorter than dataset; 3rd to T-th period are required for each individual]
 
 
   gmmDat.parDep$fitted.diff	<- if(length(varname.reg.estParam) == 1){
@@ -910,10 +908,11 @@ dat.closedFormExpand.fct		<- function(
   i
   ,dat.na
   ,varname.i
-  ,varname.reg.instr
-  ,varname.reg.toInstr
+#  ,varname.reg.instr
+#  ,varname.reg.toInstr
   ,varname.y
   ,varname.reg.estParam
+  ,varname.reg
   ,use.mc.diff
   ,use.mc.lev
   ,use.mc.nonlin
@@ -930,10 +929,7 @@ dat.closedFormExpand.fct		<- function(
   ,ex.reg
 ){
 
-  varnames.temp	<- if( !(is.null(varname.reg.instr)) | !(is.null(varname.reg.toInstr)) ){
-    c(if(!(is.null(varname.reg.instr))){ varname.reg.estParam[!(varname.reg.estParam %in% varname.reg.instr)] }
-      ,if(!(is.null(varname.reg.toInstr))){ varname.reg.toInstr }, varname.y )
-  } else{ c(varname.reg.estParam, varname.y) }
+  varnames.temp	 <- c(varname.reg.estParam, varname.y)
 
   data.temp		<- dat.na[dat.na[, varname.i] == as.numeric(i), varnames.temp]
 
@@ -963,18 +959,15 @@ dat.expand.fct		<- function(
   i
   ,dat.na
   ,varname.i
-  ,varname.reg.instr
-  ,varname.reg.toInstr
+#  ,varname.reg.instr
+#  ,varname.reg.toInstr
   ,varname.y
   ,varname.reg.estParam
   ,max.lagTerms
   ,Time
 ){
 
-  varnames.temp	<- if( !(is.null(varname.reg.instr)) | !(is.null(varname.reg.toInstr)) ){
-    c(if(!(is.null(varname.reg.instr))){ varname.reg.estParam[!(varname.reg.estParam %in% varname.reg.instr)] }
-      ,if(!(is.null(varname.reg.toInstr))){ varname.reg.toInstr }, varname.y )
-  } else{ c(varname.reg.estParam, varname.y) }
+  varnames.temp	<- c(varname.reg.estParam, varname.y)
 
   data.temp		<- dat.na[dat.na[, varname.i] == as.numeric(i), varnames.temp]
 

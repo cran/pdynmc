@@ -1,11 +1,25 @@
+# pdynmc development version 0.9.5
+
+Update of version 0.9.4 which adds further functionality and argument checks to estimation function. Additionally, the computation underlying non-robust two-step standard errors is adjusted (option accessible by changing argument "std.err" from its default to "std.err = unadjusted") and the functions for deriving instruments from further exogenous covariates were adjusted to comply with data requirements.
+
+### pdynmc
+* Allow lagged dependent variable to be instrumented
+* Extend checks of function arguments
+* Fix bug in computation of "unadjusted" two-step standard errors
+* Ensure that instruments derived from further exogenous covariates comply with data requirements
+
+
+
+
+
 # pdynmc version 0.9.4
 
-Minor update in which package DESCRIPTION, CITATION, and documentation is adjusted and two further package vignettes are added.
+Minor update of version 0.9.3 in which package DESCRIPTION, CITATION, and documentation is adjusted and two further package vignettes are added.
 
 ### new vignettes:
-*01_pdynmc-intro
-*02_pdynmc_introLong
-*03_pdynmc-in-a-nutshell
+*pdynmc-intro
+*pdynmc_introLong
+*pdynmc-pres-in-a-nutshell
 
 
 
@@ -75,7 +89,7 @@ Update of version 0.8.0 that includes visualizations for fitted model objects (c
 
 
 ### functions for exploratory analysis of panel data added
-* data.info: Returns information on structure of a balanced/unbalanced panel data set
+* data.info: Returns information on structure of a balanced/unbalanced panel dataset
 * strucUPD.plot: Visualizes structure of unbalanced panel data
 
 

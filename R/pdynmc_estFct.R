@@ -80,7 +80,7 @@
 #'    \insertCite{AhnSch1995;textual}{pdynmc}.
 #'
 #' @aliases pdynmc
-#' @param dat A data set.
+#' @param dat A dataset.
 #' @param varname.i The name of the cross-section identifier.
 #' @param varname.t The name of the time-series identifier.
 #' @param use.mc.diff A logical variable indicating whether moment conditions from
@@ -100,7 +100,7 @@
 #' @param include.y A logical variable indicating whether instruments should be
 #'    derived from the lags of the dependent variable.
 #' @param varname.y A character string denoting the name of the dependent variable
-#'    in the data set.
+#'    in the dataset.
 #' @param lagTerms.y An integer indicating the number of lags of the dependent
 #'    variable.
 #' @param maxLags.y An integer indicating the maximum number of lags of the
@@ -110,7 +110,7 @@
 #'    specifying whether the covariates are endogenous, predetermined, or
 #'    (strictly) exogenous (defaults to `FALSE`).
 #' @param varname.reg.end One or more character strings denoting the covariate(s)
-#'    in the data set to be treated as endogenous (defaults to `NULL`).
+#'    in the dataset to be treated as endogenous (defaults to `NULL`).
 #' @param lagTerms.reg.end One or more integers indicating the number of lags of
 #'    the endogenous covariate(s). One integer per covariate needs to be given
 #'    in the same order as the covariate names (defaults to `NULL`).
@@ -119,7 +119,7 @@
 #'    integer per covariate needs to be given in the same order as the covariate
 #'    names (defaults to `NULL`).
 #' @param varname.reg.pre One or more character strings denoting the covariate(s)
-#'    in the data set to be treated as predetermined (defaults to `NULL`).
+#'    in the dataset to be treated as predetermined (defaults to `NULL`).
 #' @param lagTerms.reg.pre One or more integers indicating the number of lags of
 #'    the predetermined covariate(s). One integer per covariate needs to be given
 #'    in the same order as the covariate name (defaults to `NULL`).
@@ -128,7 +128,7 @@
 #'    integer per covariate needs to be given in the same order as the covariate
 #'    names (defaults to `NULL`).
 #' @param varname.reg.ex One or more character strings denoting the covariate(s)
-#'    in the data set to be treated as (strictly) exogenous (defaults to `NULL`).
+#'    in the dataset to be treated as (strictly) exogenous (defaults to `NULL`).
 #' @param lagTerms.reg.ex One or more integers indicating the number of lags of
 #'    the (strictly) exogenous covariate(s). One integer per covariate needs to
 #'    be given in the same order as the covariate name (defaults to `NULL`).
@@ -140,7 +140,7 @@
 #'    IV-type instruments (i.e., include covariates which are used as instruments
 #'    but for which no parameters are estimated; defaults to `FALSE`).
 #' @param varname.reg.instr One or more character strings denoting the covariate(s)
-#'    in the data set treated as instruments in estimation (defaults to `NULL`).
+#'    in the dataset treated as instruments in estimation (defaults to `NULL`).
 #' @param inst.reg.ex.expand A logical variable that allows for using all past,
 #'    present, and future observations of `varname.reg.ex` to derive instruments
 #'    (defaults to `TRUE`).
@@ -148,7 +148,7 @@
 #'    (i.e., covariates which are not used as instruments but for which parameters
 #'    are estimated; defaults to `FALSE`).
 #' @param varname.reg.toInstr One or more character strings denoting the covariates
-#'    in the data set to be instrumented (defaults to `NULL`).
+#'    in the dataset to be instrumented (defaults to `NULL`).
 #' @param fur.con A logical variable indicating whether further control variables
 #'    (covariates) are included (defaults to `FALSE`).
 #' @param fur.con.diff A logical variable indicating whether to include further
@@ -156,7 +156,7 @@
 #' @param fur.con.lev A logical variable indicating whether to include further
 #'    control variables in equations from level (defaults to `NULL`).
 #' @param varname.reg.fur One or more character strings denoting covariate(s) in
-#'    the data set to treat as further controls (defaults to `NULL`).
+#'    the dataset to treat as further controls (defaults to `NULL`).
 #' @param lagTerms.reg.fur One or more integers indicating the number of lags of
 #'    the further controls. One integer per further control needs to be given in
 #'    the same order as the corresponding variable names (defaults to `NULL`).
@@ -564,14 +564,18 @@ pdynmc		<- function(
  if(!fur.con && !((is.null(fur.con.diff) & is.null(fur.con.lev)) | (is.null(fur.con.diff) | is.null(fur.con.lev))) ){
    if(fur.con.diff){
      fur.con.diff <- FALSE
-     warning("No further controls included; argument 'fur.con.diff' was therefore ignored")
+     warning("No further controls included; argument 'fur.con.diff' was therefore ignored.")
    }
    if(fur.con.lev){
      fur.con.lev <- FALSE
-     warning("No further controls included; argument 'fur.con.lev' was therefore ignored")
+     warning("No further controls included; argument 'fur.con.lev' was therefore ignored.")
    }
  }
 
+
+ if( (instr.reg == 0) & (toInstr.reg == 1) ){
+   stop("No covariates given which should be used to instrument the endogenous covariate.")
+ }
 
  if(include.x.instr & is.null(varname.reg.instr)
  ){
@@ -636,11 +640,11 @@ pdynmc		<- function(
  if(!include.dum &  (!is.null(dum.diff) | !is.null(dum.lev)) ){
    if(!is.null(dum.diff)){
      dum.diff <- FALSE
-     warning("No dummies included; argument 'dum.diff' was therefore ignored")
+     warning("No dummies included; argument 'dum.diff' was therefore ignored.")
    }
    if(!is.null(dum.lev)){
      dum.lev <- FALSE
-     warning("No dummies included; argument 'dum.lev' was therefore ignored")
+     warning("No dummies included; argument 'dum.lev' was therefore ignored.")
    }
  }
  if(!include.dum &  (is.null(dum.diff) | is.null(dum.lev)) ){
@@ -651,6 +655,8 @@ pdynmc		<- function(
      dum.lev <- FALSE
    }
  }
+
+
 
 
 
@@ -686,7 +692,7 @@ pdynmc		<- function(
 
 
 ###
-###	Expand data set and set number of cross-section-/time-series-observations
+###	Expand dataset and set number of cross-section-/time-series-observations
 ###
 
 
@@ -869,7 +875,7 @@ pdynmc		<- function(
 
 
 ###
-###	Specifying the number of lags available to derive instruments and further expanding the data set
+###	Specifying the number of lags available to derive instruments and further expanding the dataset
 ###
 
 
@@ -995,7 +1001,7 @@ pdynmc		<- function(
 
 
 
-#c) Expanding the lag structure and expanding the data set
+#c) Expanding the lag structure and expanding the dataset
 
 
  varname.expand	<- function(
@@ -1047,9 +1053,12 @@ pdynmc		<- function(
 # }
 
  if(include.x){
-   if(!(is.null(varname.reg.end)) & sum(!(varname.reg.end %in% varname.reg.instr)) > 0){
-     varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.end[!(varname.reg.end %in% varname.reg.instr)]} else{ varname.reg.end }
-     lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.end[!(varname.reg.end %in% varname.reg.instr)]} else{ lagTerms.reg.end }
+#   if(!(is.null(varname.reg.end)) & sum(!(varname.reg.end %in% varname.reg.instr)) > 0){
+#     varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.end[!(varname.reg.end %in% varname.reg.instr)]} else{ varname.reg.end }
+#     lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.end[!(varname.reg.end %in% varname.reg.instr)]} else{ lagTerms.reg.end }
+   if(!is.null(varname.reg.end)){
+     varname.temp					<- varname.reg.end
+     lagTerms.temp				<- lagTerms.reg.end
      if(length(varname.reg.end) == 1){
        varname.reg.estParam.x.end			<- as.vector(mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
        dat.na[, varname.reg.estParam.x.end]	<- as.vector(mapply(lagTerms = rep(mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand), each = length(i_cases)),
@@ -1064,9 +1073,12 @@ pdynmc		<- function(
 									FUN = dat.na.lag)
      }
    }
-   if(!(is.null(varname.reg.pre)) & sum(!(varname.reg.pre %in% varname.reg.instr)) > 0){
-     varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.pre[!(varname.reg.pre %in% varname.reg.instr)] } else{ varname.reg.pre }
-     lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.pre[!(varname.reg.pre %in% varname.reg.instr)] } else{ lagTerms.reg.pre }
+#   if(!(is.null(varname.reg.pre)) & sum(!(varname.reg.pre %in% varname.reg.instr)) > 0){
+#     varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.pre[!(varname.reg.pre %in% varname.reg.instr)] } else{ varname.reg.pre }
+#     lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.pre[!(varname.reg.pre %in% varname.reg.instr)] } else{ lagTerms.reg.pre }
+   if(!is.null(varname.reg.pre)){
+     varname.temp					<- varname.reg.pre
+     lagTerms.temp				<- lagTerms.reg.pre
      if(length(varname.reg.pre) == 1){
        varname.reg.estParam.x.pre			<- as.vector(mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
        dat.na[, varname.reg.estParam.x.pre]	<- as.vector(mapply(lagTerms = rep(mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand), each = length(i_cases)),
@@ -1081,9 +1093,12 @@ pdynmc		<- function(
 									FUN = dat.na.lag)
      }
    }
-   if(!(is.null(varname.reg.ex)) & sum(!(varname.reg.ex %in% varname.reg.instr)) > 0){
-     varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.ex[!(varname.reg.ex %in% varname.reg.instr)] } else{ varname.reg.ex }
-     lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.ex[!(varname.reg.ex %in% varname.reg.instr)] } else{ lagTerms.reg.ex }
+#   if(!(is.null(varname.reg.ex)) & sum(!(varname.reg.ex %in% varname.reg.instr)) > 0){
+#     varname.temp					<- if(!(is.null(varname.reg.instr))){ varname.reg.ex[!(varname.reg.ex %in% varname.reg.instr)] } else{ varname.reg.ex }
+#     lagTerms.temp					<- if(!(is.null(varname.reg.instr))){ lagTerms.reg.ex[!(varname.reg.ex %in% varname.reg.instr)] } else{ lagTerms.reg.ex }
+   if(!is.null(varname.reg.ex)){
+     varname.temp					<- varname.reg.ex
+     lagTerms.temp				<- lagTerms.reg.ex
      if(length(varname.reg.ex) == 1){
        varname.reg.estParam.x.ex			<- as.vector(mapply(varname = varname.temp, lagTerms = lagTerms.temp, FUN = varname.expand) )
        dat.na[, varname.reg.estParam.x.ex]	<- as.vector(mapply(lagTerms = rep(mapply(lagTerms.temp, varname = varname.temp, FUN = lag.expand), each = length(i_cases)),
@@ -1118,6 +1133,9 @@ pdynmc		<- function(
    varname.reg.estParam.fur <- NULL
  }
 
+
+
+
  varname.reg.estParam		 <- c(if(exists("varname.reg.estParam.y")) as.vector(varname.reg.estParam.y)			# [M:] covariates (besides the lagged dependent variable) for which to estimate parameters
 						,if(exists("varname.reg.estParam.x.end")) as.vector(varname.reg.estParam.x.end)
 						,if(exists("varname.reg.estParam.x.pre")) as.vector(varname.reg.estParam.x.pre)
@@ -1131,26 +1149,20 @@ pdynmc		<- function(
 
 
 
+ varname.reg			<- varname.reg.estParam
 
- varname.reg			<- 	c( if(!(is.null(varname.reg.end))) varname.reg.end							# [M:] covariates (besides the lagged dependent variable) to include in estimation
-							,if(!(is.null(varname.reg.pre))) varname.reg.pre
-							,if(!(is.null(varname.reg.ex))) varname.reg.ex
-							,if(!(is.null(varname.reg.estParam.fur))) as.vector(varname.reg.estParam.fur) )
-
-
-
-
-
-
- if(!(is.null(varname.reg.toInstr))){
-   if(varname.reg.toInstr != varname.y){
-     varname.reg.estParam	<- c(varname.reg.estParam, varname.reg.toInstr)				# [M:] include further (endogenous) covariates for which to estimate parameters, but from which no instruments should be derived
-   }
-   varname.reg			<- varname.reg[!(varname.reg %in% varname.reg.toInstr)]		# [M:] exclude the (endogenous) covariates for which to estimate parameters, but from which no instruments should be derived
+ if(!is.null(varname.reg.toInstr)){
+#   varname.reg            <- varname.reg[!(grepl(pattern = varname.reg.toInstr, varname.reg))]
+#   varname.reg.estParam   <- varname.reg.estParam[!(grepl(pattern = varname.reg.instr, varname.reg.estParam))]
+   varname.reg.estParam   <- varname.reg.estParam[!(grepl(pattern = varname.reg.instr, varname.reg.estParam))]
+   varname.reg            <- replace(varname.reg.estParam, grepl(pattern = varname.reg.toInstr, varname.reg.estParam), varname.reg[grepl(pattern = varname.reg.instr, varname.reg)] )
  }
- #else{
- #  varname.reg.estParam		<- c(if(!(is.null(varname.reg.estParam.y))){ varname.reg.estParam.y }, varname.reg)
- #}
+
+
+
+
+
+
 
 
 
@@ -1343,16 +1355,18 @@ pdynmc		<- function(
    names(resGMM.ctrl.opt.j)[j]	<- paste("step", j, sep = "")
 
    dat.temp			<- lapply(X = i_cases, FUN = dat.closedFormExpand.fct
-					,dat.na = dat.na, varname.i = varname.i, varname.reg.instr = varname.reg.instr
-					,varname.reg.toInstr = varname.reg.toInstr, varname.y = varname.y, varname.reg.estParam = varname.reg.estParam
+					,dat.na = dat.na, varname.i = varname.i
+#					,varname.reg.instr = varname.reg.instr, varname.reg.toInstr = varname.reg.toInstr
+					,varname.y = varname.y, varname.reg.estParam = varname.reg.estParam, varname.reg = varname.reg
 					,use.mc.diff = use.mc.diff, use.mc.lev = use.mc.lev, use.mc.nonlin = use.mc.nonlin, use.mc.nonlinAS = use.mc.nonlinAS
 					,dum.diff = dum.diff, dum.lev = dum.lev, fur.con.diff = fur.con.diff, fur.con.lev = fur.con.lev, max.lagTerms = max.lagTerms, maxLags.y = maxLags.y, Time = Time
 					,include.x = include.x, pre.reg = pre.reg, ex.reg = ex.reg)
 
    dat.res.temp <- lapply(X = i_cases, FUN = dat.expand.fct
-                          ,dat.na = dat.na, varname.i = varname.i, varname.reg.instr = varname.reg.instr
-                          ,varname.reg.toInstr = varname.reg.toInstr, varname.y = varname.y, varname.reg.estParam = varname.reg.estParam
-                          , max.lagTerms = max.lagTerms, Time = Time)
+                          ,dat.na = dat.na, varname.i = varname.i
+#                          ,varname.reg.instr = varname.reg.instr, varname.reg.toInstr = varname.reg.toInstr
+                          ,varname.y = varname.y, varname.reg.estParam = varname.reg.estParam
+                          ,max.lagTerms = max.lagTerms, Time = Time)
 
    if(nrow(resGMM$Z.temp[[1]]) == 1){
      dat.clF.temp		<- lapply(lapply(dat.temp, `[[`, 1), function(x) Matrix::t(x))
@@ -1410,7 +1424,21 @@ pdynmc		<- function(
    tZY				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, dep.temp.0, SIMPLIFY = FALSE))
 
 #   tXZW1tZX.inv			<- solve(tcrossprod(crossprod(as.matrix(tZX), get(paste("step", j, sep = ""), resGMM.W.j)), t(as.matrix(tZX))))
-   tXZW1tZX.inv			<- MASS::ginv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX)) ) )
+   tXZW1tZX.inv			<- MASS::ginv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX)) ) )     # differences to syminv()-function in Stata!
+#   tXZW1tZX.inv			<- pracma::pinv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX)) ) ) # alternative generalized inverse (same result as MASS::ginv)
+#   tXZW1tZX.inv			<- VCA::MPinv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX)) ) )   # alternative generalized inverse (same result as MASS::ginv)
+#   tXZW1tZX.inv			<- matlib::Ginv(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX)) ) ) # alternative generalized inverse (different results)
+#   solve(qr(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX)) )), LAPACK = TRUE)
+
+#   ---
+#   properties of the generalized inverse
+#   ---
+#   as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))) %*% tXZW2tZX.inv %*% as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX)))
+#   tXZW2tZX.inv %*% as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))) %*% tXZW2tZX.inv
+#   t(as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))) %*% tXZW2tZX.inv)
+#   as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))) %*% tXZW2tZX.inv
+#   t(tXZW2tZX.inv %*% as.matrix(Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))))
+
 #   tXZW1tZY				<- Matrix::crossprod(tZX, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZY))
    tYZW1tZX				<- Matrix::crossprod(tZY, Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX))
 
@@ -1562,24 +1590,26 @@ pdynmc		<- function(
        names(resGMM.stderr.j)[j]	<- paste("step", j, sep = "")
 
 
-       tZ.res2s				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, get(paste("step", j, sep = ""), resGMM.Szero.j), SIMPLIFY = FALSE))
+       if(std.err == "corrected"){
+         tZ.res2s				<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x,y), resGMM$Z.temp, get(paste("step", j, sep = ""), resGMM.Szero.j), SIMPLIFY = FALSE))
 
-       D					<- c()
+         D					<- c()
 
-       for(k in 1:length(varname.reg.estParam)){
-         x_ktu	<- mapply(function(x,y){
-				  z		<- Matrix::tcrossprod(x[, k], y)
-							 - z - t(z)						#[M:] Code line from R-code of 'vcovHC.pgmm'; '-z' multiplies all elements with (-1); '-t(z)' adds up the off-diagonal elements
-				}, dat.clF.temp.0, get(paste("step", j-1, sep = ""), resGMM.Szero.j), SIMPLIFY = FALSE)
-         tZtux_kZ	<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x, Matrix::crossprod(y,x)), resGMM$Z.temp, x_ktu, SIMPLIFY = FALSE))
-         D_k	<- Matrix::crossprod((-1)*get(paste("step", j, sep = ""), resGMM.vcov.j), Matrix::crossprod(Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX), Matrix::tcrossprod(tZtux_kZ, Matrix::tcrossprod(Matrix::t(tZ.res2s), get(paste("step", j, sep = ""), resGMM.W.j) ) ) ) )
-         D		<- cbind(D, D_k)
+         for(k in 1:length(varname.reg.estParam)){
+           x_ktu	<- mapply(function(x,y){
+				    z		<- Matrix::tcrossprod(x[, k], y)
+							   - z - t(z)						#[M:] Code line from R-code of 'vcovHC.pgmm'; '-z' multiplies all elements with (-1); '-t(z)' adds up the off-diagonal elements
+				  }, dat.clF.temp.0, get(paste("step", j-1, sep = ""), resGMM.Szero.j), SIMPLIFY = FALSE)
+           tZtux_kZ	<- Reduce("+", mapply(function(x,y) Matrix::crossprod(x, Matrix::crossprod(y,x)), resGMM$Z.temp, x_ktu, SIMPLIFY = FALSE))
+           D_k	<- Matrix::crossprod((-1)*get(paste("step", j, sep = ""), resGMM.vcov.j), Matrix::crossprod(Matrix::crossprod(get(paste("step", j, sep = ""), resGMM.W.j), tZX), Matrix::tcrossprod(tZtux_kZ, Matrix::tcrossprod(Matrix::t(tZ.res2s), get(paste("step", j, sep = ""), resGMM.W.j) ) ) ) )
+           D		<- cbind(D, D_k)
+         }
+
+
+         resGMM.vcov.j[[j]]		<- get(paste("step", j, sep = ""), resGMM.vcov.j) + Matrix::tcrossprod(D, get(paste("step", j, sep = ""), resGMM.vcov.j)) + Matrix::tcrossprod(D, get(paste("step", j, sep = ""), resGMM.vcov.j)) + Matrix::tcrossprod(Matrix::tcrossprod(D, get(paste("step", 1, sep = ""), resGMM.vcov.j)), D)
+         resGMM.stderr.j[[j]]		<- sqrt(diag(as.matrix(get(paste("step", j, sep = ""), resGMM.vcov.j))))
+
        }
-
-
-       resGMM.vcov.j[[j]]		<- get(paste("step", j, sep = ""), resGMM.vcov.j) + Matrix::tcrossprod(D, get(paste("step", j, sep = ""), resGMM.vcov.j)) + Matrix::tcrossprod(D, get(paste("step", j, sep = ""), resGMM.vcov.j)) + Matrix::tcrossprod(Matrix::tcrossprod(D, get(paste("step", 1, sep = ""), resGMM.vcov.j)), D)
-       resGMM.stderr.j[[j]]		<- sqrt(diag(as.matrix(get(paste("step", j, sep = ""), resGMM.vcov.j))))
-
 
 
        if(opt.meth != "none"){

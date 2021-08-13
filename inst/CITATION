@@ -5,8 +5,10 @@ bibentry(bibtype = "Article",
 		person("Joachim", "Schnurbus")),
 	journal = ("The R Journal"),
 	year = ("2021"),
+	volume = ("13"),
+  number = ("1"),
 	doi = ("10.32614/RJ-2021-035"),
-	url = ("https://journal.r-project.org/archive/2021/RJ-2021-035"),
+	url = ("https://journal.r-project.org/archive/2021/RJ-2021-035/"),
 	header = "To cite pdynmc in publication, please use:"
 	)
 
@@ -16,8 +18,8 @@ bibentry(bibtype = "misc",
 	author = c(person("Markus", "Fritsch"),
 		person("Andrew Adrian Yu", "Pua"),
 		person("Joachim", "Schnurbus")),
-	version = ("0.9.4"),
-  date = ("2021-06-11"),
+	version = ("0.9.5"),
+  date = ("2021-08-13"),
   year = ("2021"),
 	url = ("https://cran.r-project.org/package=pdynmc"),
 	header = "To cite the software implementation of pdynmc in publication, please use:"
