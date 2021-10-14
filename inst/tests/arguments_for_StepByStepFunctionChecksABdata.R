@@ -21,7 +21,7 @@ varname.t = "year"
 
 use.mc.diff = TRUE
 use.mc.lev = FALSE
-use.mc.nonlin = TRUE
+use.mc.nonlin = FALSE
 use.mc.nonlinAS = NULL
 inst.stata = FALSE
 
@@ -62,11 +62,11 @@ w.mat = "iid.err"
 w.mat.stata = FALSE
 
 std.err = "corrected"
-estimation = "twostep"
+estimation = "iterative"
 max.iter = 4
 iter.tol = 0.01
 inst.thresh = NULL
-opt.meth = "BFGS"
+opt.meth = "none"
 hessian = FALSE
 optCtrl = list(kkt = FALSE, kkttol = .Machine$double.eps^(1/3), kkt2tol =
     .Machine$double.eps^(1/3), starttests = TRUE, dowarn = TRUE, badval = (0.25) *
