@@ -80,6 +80,8 @@
 #'    \insertCite{AhnSch1995;textual}{pdynmc}. Standard error corrections
 #'    according to \insertCite{Win2005;textual}{pdynmc} and
 #'    \insertCite{HwangKangLee2020;textual}{pdynmc} are available.
+#'    For further details, please see
+#'    \insertCite{FriPuaSch2019c;textual}{pdynmc}.
 #'
 #' @aliases pdynmc
 #' @param dat A dataset.
@@ -138,19 +140,24 @@
 #'    lags of the (strictly) exogenous covariate(s) used for deriving instruments.
 #'    One integer per covariate needs to be given in the same order as the
 #'    covariate names (defaults to `NULL`).
-#' @param include.x.instr A logical variable that allows to include additionl
+#' @param include.x.instr A logical variable that allows to include additional
 #'    IV-type instruments (i.e., include covariates which are used as instruments
 #'    but for which no parameters are estimated; defaults to `FALSE`).
 #' @param varname.reg.instr One or more character strings denoting the covariate(s)
 #'    in the dataset treated as instruments in estimation (defaults to `NULL`).
+#'    Note that the instrument type needs to be specified by including the names
+#'    of the covariate(s) in any of the arguments `varname.reg.end`,
+#'    `varname.reg.pre`, or `varname.reg.ex`.
 #' @param inst.reg.ex.expand A logical variable that allows for using all past,
 #'    present, and future observations of `varname.reg.ex` to derive instruments
-#'    (defaults to `TRUE`).
-#' @param include.x.toInstr A logical variable that allows to instrument covariates
+#'    (defaults to `TRUE`). If set to `FALSE`, only past and present time periods
+#'    are used to derive instruments.
+#' @param include.x.toInstr A logical variable that allows to instrument covariate(s)
 #'    (i.e., covariates which are not used as instruments but for which parameters
 #'    are estimated; defaults to `FALSE`).
-#' @param varname.reg.toInstr One or more character strings denoting the covariates
-#'    in the dataset to be instrumented (defaults to `NULL`).
+#' @param varname.reg.toInstr One or more character strings denoting the covariate(s)
+#'    in the dataset to be instrumented (defaults to `NULL`). Note that the names of
+#'    the covariate(s) should not be included in any other function argument.
 #' @param fur.con A logical variable indicating whether further control variables
 #'    (covariates) are included (defaults to `FALSE`).
 #' @param fur.con.diff A logical variable indicating whether to include further
@@ -285,18 +292,14 @@
 #'
 #'
 #' @examples
-#' ## Load data from plm package
-#' if(!requireNamespace("plm", quietly = TRUE)){
-#'  stop("Dataset from package \"plm\" needed for this example.
-#'  Please install the package.", call. = FALSE)
-#' } else{
-#'  data(EmplUK, package = "plm")
-#'  dat <- EmplUK
-#'  dat[,c(4:7)] <- log(dat[,c(4:7)])
-#'  dat <- dat[c(1:140), ]
+#' ## Load data
+#' data(ABdata, package = "pdynmc")
+#' dat <- ABdata
+#' dat[,c(4:7)] <- log(dat[,c(4:7)])
+#' dat <- dat[c(1:140), ]
 #'
 #' ## Code example
-#'  m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
+#' m1 <- pdynmc(dat = dat, varname.i = "firm", varname.t = "year",
 #'          use.mc.diff = TRUE, use.mc.lev = FALSE, use.mc.nonlin = FALSE,
 #'          include.y = TRUE, varname.y = "emp", lagTerms.y = 2,
 #'          fur.con = TRUE, fur.con.diff = TRUE, fur.con.lev = FALSE,
@@ -304,17 +307,12 @@
 #'          include.dum = TRUE, dum.diff = TRUE, dum.lev = FALSE, varname.dum = "year",
 #'          w.mat = "iid.err", std.err = "corrected", estimation = "onestep",
 #'          opt.meth = "none")
-#'  summary(m1)
-#' }
+#' summary(m1)
 #'
 #' \donttest{
-#' ## Load data from plm package
-#' if(!requireNamespace("plm", quietly = TRUE)){
-#'  stop("Dataset from package \"plm\" needed for this example.
-#'  Please install the package.", call. = FALSE)
-#' } else{
-#'  data(EmplUK, package = "plm")
-#'  dat <- EmplUK
+#' ## Load data
+#'  data(ABdata, package = "pdynmc")
+#'  dat <- ABdata
 #'  dat[,c(4:7)] <- log(dat[,c(4:7)])
 #'
 #' ## Arellano and Bond (1991) estimation in Table 4, column (a1)
@@ -374,7 +372,6 @@
 #'          w.mat = "iid.err", std.err = "corrected", estimation = "twostep",
 #'          opt.meth = "none")
 #'  summary(m5)
-#' }
 #' }
 #'
 #'
@@ -700,6 +697,12 @@ pdynmc		<- function(
 ###
 
 
+ dat$i.label        <- as.character(dat[, varname.i])
+ dat[, varname.i]   <- as.numeric(as.factor(dat[, varname.i]))
+
+ dat$t.label        <- as.character(dat[, varname.t])
+ dat[, varname.t]   <- as.numeric(as.factor(dat[, varname.t]))
+
  i_cases		<- sort(unique(dat[, varname.i]))
  i_temp			<- 1:length(i_cases)				      # reflects data structures where i does not start at i = 1
  t_cases		<- sort(unique(dat[, varname.t]))
@@ -780,7 +783,7 @@ pdynmc		<- function(
    }
 
    colnames.dum			<- Reduce(c, lapply(do.call(what = "c", args = list(sapply(1:length(varname.dum), FUN = adjust.colnames.fct))), FUN = c))
-
+   colnames.dum     <- unique(dat$t.label)[as.numeric(colnames.dum)]
 
    colnames(D.add)		<- colnames.dum
 
@@ -794,6 +797,9 @@ pdynmc		<- function(
 
    dat[is.na(dat.na[, varname.y]), !(colnames(dat) %in% c(varname.i, varname.t))]		<- 0
    dat.na[is.na(dat.na[, varname.y]), !(colnames(dat) %in% c(varname.i, varname.t))]		<- NA
+
+#   dat[is.na(dat.na[, varname.y]), !(colnames(dat) %in% c("i.label", "t.label"))]		<- 0
+#   dat.na[is.na(dat.na[, varname.y]), !(colnames(dat) %in% c("i.label", "t.label"))]		<- NA
 
 
 
@@ -1143,6 +1149,7 @@ pdynmc		<- function(
 						,if(exists("varname.reg.estParam.x.end")) as.vector(varname.reg.estParam.x.end)
 						,if(exists("varname.reg.estParam.x.pre")) as.vector(varname.reg.estParam.x.pre)
 						,if(exists("varname.reg.estParam.x.ex")) as.vector(varname.reg.estParam.x.ex)
+						,if(exists("varname.reg.toInstr")) as.vector(varname.reg.toInstr)
 						,if(exists("varname.reg.estParam.fur") & !(is.null(varname.reg.estParam.fur))) as.vector(varname.reg.estParam.fur) )
 
 
@@ -1157,8 +1164,8 @@ pdynmc		<- function(
  if(!is.null(varname.reg.toInstr)){
 #   varname.reg            <- varname.reg[!(grepl(pattern = varname.reg.toInstr, varname.reg))]
 #   varname.reg.estParam   <- varname.reg.estParam[!(grepl(pattern = varname.reg.instr, varname.reg.estParam))]
-   varname.reg.estParam   <- varname.reg.estParam[!(grepl(pattern = varname.reg.instr, varname.reg.estParam))]
-   varname.reg            <- replace(varname.reg.estParam, grepl(pattern = varname.reg.toInstr, varname.reg.estParam), varname.reg[grepl(pattern = varname.reg.instr, varname.reg)] )
+     varname.reg.estParam   <- varname.reg.estParam[!(grepl(pattern = paste(varname.reg.instr,collapse="|"), x = varname.reg.estParam))]
+     varname.reg            <- varname.reg[!(grepl(pattern = paste(varname.reg.toInstr,collapse="|"), x = varname.reg))]
  }
 
 
@@ -1171,10 +1178,6 @@ pdynmc		<- function(
 
 
 
-
-
- dat.na$i.label      <- dat.na[, varname.i]
- dat.na[, varname.i] <- as.numeric(dat.na[, varname.i])
 
  dat					        <- dat.na
  dat[is.na(dat.na)]		<- 0
@@ -1203,6 +1206,7 @@ pdynmc		<- function(
 
  resGMM$n.inst		<- apply(Reduce(f = rbind, x = lapply(Z.obj, `[[`, 3)), FUN = max, MARGIN = 2)
 
+# colnames.dum.Z		<- unique(dat$t.label)[as.numeric(as.vector(unique(Reduce(f = rbind, x = lapply(Z.obj, `[[`, 2) ) )))]
  colnames.dum.Z		<- as.vector(unique(Reduce(f = rbind, x = lapply(Z.obj, `[[`, 2) ) ))
 
  resGMM$Z.temp		<- lapply(Z.obj, `[[`, 1)
@@ -1218,7 +1222,8 @@ pdynmc		<- function(
 
  if(include.dum){
    if((dum.lev & !(dum.diff)) | (dum.lev & dum.diff)){
-     varname.reg.estParam	<- c(varname.reg.estParam, colnames.dum[colnames.dum %in% colnames.dum.Z])
+     varname.reg.estParam	<- c(varname.reg.estParam, colnames.dum)
+#     varname.reg.estParam	<- c(varname.reg.estParam, colnames.dum[colnames.dum %in% colnames.dum.Z])
    } else{
      varname.reg.estParam	<- c(varname.reg.estParam, unlist(lapply(strsplit(x = colnames.dum.Z, split = "D."), FUN = `[[`, 2)))
    }

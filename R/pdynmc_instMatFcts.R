@@ -136,20 +136,20 @@ variable.ex.fct	<- function(			# function that creates starting and end period w
 #  t.start		<- if(Time > T.mcDiff){ c((Time-T.mcDiff):(Time)) } else{ rep(1, times = Time-lagTerms-1) }
 #  t.start   <- rep(1, times = Time-lagTerms-1) + if(Time-T.mcDiff > 0){c(rep(0, times = Time - T.mcDiff), (1:(Time - T.mcDiff)))} else{0}
   if(inst.reg.ex.expand){
-    t.start   <- rep(1, times = Time-lagTerms-1) + if(Time-T.mcDiff > 0){c(rep(0, times = Time-lagTerms-1-(Time-T.mcDiff)), (1:(Time - T.mcDiff)))} else{0}
-    t.end			<- t.start + (T.mcDiff-1)
+    ti        <- rep(1, times = Time-lagTerms-1) + if(Time-T.mcDiff > 0){c(rep(0, times = Time-lagTerms-1-(Time-T.mcDiff)), (1:(Time - T.mcDiff)))} else{0}
+    t.end			<- ti + (T.mcDiff-1)
     t.req.i   <- 1:(Time-lagTerms-1)
     t.req.e   <- (1:(Time-lagTerms-1)) + (lagTerms+1)
   } else {
-    t.start   <- rep(1, times = Time-lagTerms-1) + if(Time-T.mcDiff > 0){c(rep(0, times = Time-lagTerms-1-(Time-T.mcDiff)), (1:(Time - T.mcDiff)))} else{0}
+    ti   <- rep(1, times = Time-lagTerms-1) + if(Time-T.mcDiff > 0){c(rep(0, times = Time-lagTerms-1-(Time-T.mcDiff)), (1:(Time - T.mcDiff)))} else{0}
     t.end     <- (lagTerms+2):(Time)
     t.req.i   <- 1:(Time-lagTerms-1)
     t.req.e   <- (1:(Time-lagTerms-1)) + (lagTerms+1)
   }
 #  t.end[t.end > Time]	<- Time
 #  err.term.start	<- c((min(t.start) + lagTerms + 1):max(t.end))
-  err.term.start	<- t.start
-  Matrix::t(Matrix::bdiag(mapply(ti = t.start, t.end = t.end, err.term.start = err.term.start, t.req.i = t.req.i, t.req.e = t.req.e, FUN = dat.fct.ex, varname = varname
+  err.term.start	<- ti-1
+  Matrix::t(Matrix::bdiag(mapply(ti = ti, t.end = t.end, err.term.start = err.term.start, t.req.i = t.req.i, t.req.e = t.req.e, FUN = dat.fct.ex, varname = varname
                                  , MoreArgs = list(i = i, Time = Time
                                                  #				, mc.ref.t = mc.ref.t
                                                  , varname.i = varname.i, dat = dat, dat.na = dat.na), SIMPLIFY = FALSE)))																		# [M:] use all m.c. in direction of T and cut at initial periods
@@ -449,11 +449,12 @@ LEV.pre.fct	<- function(
     ti.temp   <- rep(max(2,lagTerms), times = Time-max(2,lagTerms)+1) + if(Time-max(2,lagTerms)-T.mcLev > 0){c(rep(0, times = T.mcLev), 1:(Time-max(2,lagTerms)-T.mcLev+1))} else{rep(0, times = Time-max(2,lagTerms)+1)}
     tend.temp <- max(2,lagTerms):(Time)
 
-    Matrix::t(Matrix::bdiag(mapply(ti = ti.temp, t.end = tend.temp, lagTerms = lagTerms, FUN = datLEV.pre.fct, varname = varname,
+    Matrix::bdiag(do.call(what = diag, args = list(mapply(ti = ti.temp, t.end = tend.temp, lagTerms = lagTerms, FUN = datLEV.pre.fct, varname = varname,
                                    MoreArgs = list(i = i, use.mc.diff = use.mc.diff, inst.stata = inst.stata
                                                    #					, mc.ref.t = mc.ref.t
-                                                   , dat = dat, dat.na = dat.na, varname.i = varname.i, Time = Time))) )*
-      as.vector(!is.na(diff(dat.na[dat.na[, varname.i] == i, varname][(lagTerms-1):Time])))
+                                                   , dat = dat, dat.na = dat.na, varname.i = varname.i, Time = Time)) *
+      as.vector(!is.na(diff(dat.na[dat.na[, varname.i] == i, varname][(lagTerms-1):Time]))) ) ) )
+
     #     } else{
     #       t(mapply(ti = Time - T.mcLev, t.end = Time, FUN = datLEV.pre.fct, varname = varname,
     #		MoreArgs = list(i = i, use.mc.diff = use.mc.diff, inst.stata = inst.stata
@@ -708,6 +709,7 @@ Z_i.fct	<- function(
   ,dat.na
 ){
 
+#  i <- as.numeric(as.factor(i))
   i <- as.numeric(i)
 
   if(use.mc.diff){
@@ -808,20 +810,27 @@ Z_i.fct	<- function(
                                                                         , dat = dat, dat.na = dat.na)) )
         }
       }
-    }
-    Z_i.mc.lev_end	<- do.call(what = "cbind", args = mget(ls(pattern = "Z_i.mc.lev_end")))
-    if(include.x & (include.y | end.reg) & (ex.reg | pre.reg)){
-      Z_i.mc.lev	<- cbind(rbind(0, Z_i.mc.lev_end), Z_i.mc.lev_ex.pre)
-    } else{
-      if((include.y | end.reg) & ((include.dum & dum.lev) | (fur.con & fur.con.lev))){
-        if(max.lagTerms == 1){
-          Z_i.mc.lev	<- rbind(0, Z_i.mc.lev_end)
+
+      if(end.reg){
+        Z_i.mc.lev_end	<- do.call(what = "cbind", args = mget(ls(pattern = "Z_i.mc.lev_end")))
+        if(include.x & (include.y | end.reg) & (ex.reg | pre.reg)){
+          Z_i.mc.lev	<- cbind(rbind(0, Z_i.mc.lev_end), Z_i.mc.lev_ex.pre)
         } else{
-          Z_i.mc.lev	<- Z_i.mc.lev_end
+          if((include.y | end.reg) & ((include.dum & dum.lev) | (fur.con & fur.con.lev))){
+            if(max.lagTerms == 1){
+              Z_i.mc.lev	<- rbind(0, Z_i.mc.lev_end)
+            } else{
+              Z_i.mc.lev	<- Z_i.mc.lev_end
+            }
+          } else{
+            Z_i.mc.lev	<- Z_i.mc.lev_end
+          }
         }
       } else{
-        Z_i.mc.lev	<- Z_i.mc.lev_end
+        Z_i.mc.lev	<- Z_i.mc.lev_ex.pre
       }
+    } else{
+      Z_i.mc.lev	<- Z_i.mc.lev_end.y
     }
     #     }
     n.inst.lev	<- ncol(Z_i.mc.lev)

@@ -3,18 +3,27 @@
 rm(list = ls())
 
 
-#	install.packages("pdynmc")
-library(pdynmc)
+#	install.packages("pder")
+library(pder)
 
 
-data(ABdata, package = "pdynmc")
-dat <- ABdata
-dat[,c(4:7)] <- log(dat[,c(4:7)])
+data("DemocracyIncome", package = "pder")
+data("DemocracyIncome25", package = "pder")
+
+
+dat	<- DemocracyIncome
+#	dat	<- DemocracyIncome25
+
+rm(DemocracyIncome, DemocracyIncome25)
+
+
+
+
 
 
 
 dat = dat
-varname.i = "firm"
+varname.i = "country"
 varname.t = "year"
 
 use.mc.diff = TRUE
@@ -24,8 +33,8 @@ use.mc.nonlinAS = NULL
 inst.stata = FALSE
 
 include.y = TRUE
-varname.y = "emp"
-lagTerms.y = 2
+varname.y = "democracy"
+lagTerms.y = 1
 maxLags.y = NULL
 
 include.x = FALSE
@@ -44,15 +53,15 @@ inst.reg.ex.expand = TRUE
 include.x.toInstr = FALSE
 varname.reg.toInstr = NULL
 
-fur.con = TRUE
-fur.con.diff = TRUE
+fur.con = FALSE
+fur.con.diff = FALSE
 fur.con.lev = FALSE
-varname.reg.fur = c("wage", "capital", "output")
-lagTerms.reg.fur = c(1,2,2)
+varname.reg.fur = NULL
+lagTerms.reg.fur = NULL
 
 include.dum = TRUE
-dum.diff = TRUE
-dum.lev = FALSE
+dum.diff = FALSE
+dum.lev = TRUE
 varname.dum = "year"
 
 col_tol = 0.65
@@ -60,7 +69,7 @@ w.mat = "iid.err"
 w.mat.stata = FALSE
 
 std.err = "corrected"
-estimation = "onestep"
+estimation = "twostep"
 max.iter = 4
 iter.tol = 0.01
 inst.thresh = NULL
