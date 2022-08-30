@@ -1,3 +1,18 @@
+# pdynmc version 0.9.8
+
+Update of version 0.9.7 which adds functionality for excluding the lagged dependent variable from the right-hand-side of the equation. Additionally, the update adds the published version of the article as vignette, ensures correct rendering of the package documentation (thanks to Kevin Tappe), and corrects minor bugs in the estimation function (thanks to Github user Dazhwu). 
+
+
+### pdynmc
+* Add flexibility for excluding the lagged dependent variable from the right-hand-side of the model equation (by setting function argument `lagTerms.y = 0`).
+* Adjust documentation to reflect the new feature.
+* Adjust further controls part of instrument matrix when using instruments from further covariates (function arguments: `include.x`, `varname.reg.pre`, `varname.reg.ex`)
+* Adjust internal helper functions (Wonestep.fct, sub.clForm.fct) correspondingly
+
+
+
+
+
 # pdynmc version 0.9.7
 
 Update of version 0.9.6 which updates the estimation function, the functions for visualizing the panel data structure, and adds two datasets to the package. The functionality for deriving instruments and estimating parameters: Covariates for which no parameters are estimated, but from which instruments are derived and covariates for which parameters for which parameters are estimated, but from which no instruments are derived.
@@ -78,10 +93,10 @@ Minor update of version 0.9.4 which adds further functionality and argument chec
 Minor update of version 0.9.3 in which package DESCRIPTION, CITATION, and documentation is adjusted and two further package vignettes are added.
 
 
-### new vignettes:
-*pdynmc-intro
-*pdynmc_introLong
-*pdynmc-pres-in-a-nutshell
+### new vignettes
+* pdynmc-intro
+* pdynmc_introLong
+* pdynmc-pres-in-a-nutshell
 
 
 
