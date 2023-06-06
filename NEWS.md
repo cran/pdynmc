@@ -1,3 +1,17 @@
+# pdynmc version 0.9.9
+
+Update of version 0.9.8 which adds new function for visualization of evolution of empirical density of a variable of interest over longitudinal dimension of a panel dataset. Additionally, typos in description of `cigDemand` dataset are adjusted and further information is added to summary of `pdynmc' objects.
+
+### pdynmc
+* Summary function adjusted to add clarification on type of estimation
+
+### functions for exploratory analysis of panel data added
+*pDensTime.plot: : Visualizes empirical density of column of panel dataset
+
+
+
+
+
 # pdynmc version 0.9.8
 
 Update of version 0.9.7 which adds functionality for excluding the lagged dependent variable from the right-hand-side of the equation. Additionally, the update adds the published version of the article as vignette, ensures correct rendering of the package documentation (thanks to Kevin Tappe), and corrects minor bugs in the estimation function (thanks to Github user Dazhwu). 
