@@ -2,7 +2,7 @@
 % Please edit documentation in R/pdynmc_exploratory.R
 \name{pDensTime.plot}
 \alias{pDensTime.plot}
-\title{Plot EmpiricalDdensity of a Column of a Panel Dataset over Time.}
+\title{Plot Empirical Density of a Column of a Panel Dataset over Time.}
 \usage{
 pDensTime.plot(
   object,
@@ -13,7 +13,8 @@ pDensTime.plot(
   plot.quantiles = TRUE,
   plot.mean_ci = TRUE,
   plot.extrema = TRUE,
-  col.set = c("gray", "navy", "darkorange1", "red")
+  col.set = c("gray", "navy", "darkorange1", "red"),
+  ...
 )
 }
 \arguments{
@@ -52,6 +53,8 @@ data type `character' used to visualize the entities
 of `pDensTime.plot' (see `Details'); must be a
 valid argument to `col2rgb'; defaults to
 `c("gray", "navy", "darkorange1", "red")'.}
+
+\item{...}{further arguments.}
 }
 \value{
 Returns a plot that visualizes the empirical

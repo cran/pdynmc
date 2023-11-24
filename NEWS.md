@@ -1,3 +1,22 @@
+# pdynmc version 0.9.10
+
+Update of version 0.9.9 that generalizes functionality of functions for exploratory analysis of panel data. The function `corSparse` from package 'qlcMatrix' was added as internal helper function, as the aforementioned package was scheduled to be moved from CRAN to the archive by 2023-11-29. Additionally, bug fixes are provided for the estimation function and the documentation of the package is adjusted according to the new CRAN recommendation.
+
+### pdynmc
+* adjust check-related bug when instrumenting endogenous covariates
+
+### pDensTime.plot
+* `...` argument added to function
+* adjust scaling of abscissa for general time periods
+* allow for user defined axis labels
+
+### corSparse
+* new internal helper function copied from package 'qlcMatrix', which is scheduled to be archived
+
+
+
+
+
 # pdynmc version 0.9.9
 
 Update of version 0.9.8 which adds new function for visualization of evolution of empirical density of a variable of interest over longitudinal dimension of a panel dataset. Additionally, typos in description of `cigDemand` dataset are adjusted and further information is added to summary of `pdynmc' objects.
@@ -6,7 +25,7 @@ Update of version 0.9.8 which adds new function for visualization of evolution o
 * Summary function adjusted to add clarification on type of estimation
 
 ### functions for exploratory analysis of panel data added
-*pDensTime.plot: : Visualizes empirical density of column of panel dataset
+* pDensTime.plot: : Visualizes empirical density of column of panel dataset
 
 
 
