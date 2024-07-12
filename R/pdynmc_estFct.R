@@ -97,6 +97,9 @@
 #'    (quadratic) moment conditions in the form proposed by
 #'    \insertCite{AhnSch1995;textual}{pdynmc} should be used (is set to `TRUE`
 #'    when nonlinear moment conditions are employed).
+#' @param inst.collapse A logical variable indicating whether to collapse the set
+#'    of moment conditions as proposed by \insertCite{Roo2009note}{pdynmc}
+#'    (defaults to `FALSE`).
 #' @param inst.stata A logical variable indicating whether to use the moment
 #'    conditions from equations in levels as in Stata implementations xtabond2
 #'    \insertCite{Roo2018xtabond2;textual}{pdynmc} and xtdpdgmm
@@ -371,18 +374,19 @@
 #'
 #'
 pdynmc		<- function(
- dat
- ,varname.i
- ,varname.t
+ dat           = NULL
+ ,varname.i    = NULL
+ ,varname.t    = NULL
 
- ,use.mc.diff
- ,use.mc.lev
- ,use.mc.nonlin
- ,use.mc.nonlinAS			= NULL
+ ,use.mc.diff      = NULL
+ ,use.mc.lev       = NULL
+ ,use.mc.nonlin    = NULL
+ ,use.mc.nonlinAS	 = NULL
 
 # ,mc.ref.t				= TRUE
 # ,mc.ref.T				= FALSE
 
+ ,inst.collapse   = FALSE
  ,inst.stata			= FALSE
 
  ,include.y
@@ -447,6 +451,12 @@ pdynmc		<- function(
 ){
 
 
+ if(is.null(dat)) stop ("No dataset provided.")
+
+ if(is.null(varname.i) | is.null(varname.t)) stop("Cross-section dimension and/or time series dimension not specified.")
+
+ if(is.null(use.mc.diff) | is.null(use.mc.lev) | is.null(use.mc.nonlin)) stop("Type of moment conditions need to be specified fully.")
+
  if(estimation == "onestep"){
    j.max			<- 1
  }
@@ -466,6 +476,32 @@ pdynmc		<- function(
 # }
 
 
+
+  resGMM			<- list()
+
+  end.reg			<- !(is.null(varname.reg.end))
+  pre.reg			<- !(is.null(varname.reg.pre))
+  ex.reg			  <- !(is.null(varname.reg.ex))
+
+  instr.reg			<- !(is.null(varname.reg.instr))
+  toInstr.reg		<- !(is.null(varname.reg.toInstr))
+
+
+  max.lagTerms		<- max(if(!(is.null(varname.y)) | !(is.null(lagTerms.y))){ lagTerms.y }, if(!(is.null(varname.reg.end))){ lagTerms.reg.end },
+                       if(!(is.null(varname.reg.pre))){ lagTerms.reg.pre }, if(!(is.null(varname.reg.ex))){ lagTerms.reg.ex },
+                       if(!(is.null(varname.reg.fur))){ lagTerms.reg.fur } )
+
+  if(max.lagTerms < 1){
+    max.lagTerms <- 1
+  }
+
+
+  dat        <- as.data.frame(dat)
+
+
+
+
+
  if(use.mc.nonlin & opt.meth == "none"){
    opt.meth			<- "BFGS"
    warning("Nonlinear optimization required to use nonlinear moment conditions; 'opt.meth' was set to 'BFGS'.")
@@ -478,185 +514,167 @@ pdynmc		<- function(
 
 
 
- resGMM			<- list()
-
- end.reg			<- !(is.null(varname.reg.end))
- pre.reg			<- !(is.null(varname.reg.pre))
- ex.reg			  <- !(is.null(varname.reg.ex))
-
- instr.reg			<- !(is.null(varname.reg.instr))
- toInstr.reg		<- !(is.null(varname.reg.toInstr))
-
-
- max.lagTerms		<- max(if(!(is.null(varname.y)) | !(is.null(lagTerms.y))){ lagTerms.y }, if(!(is.null(varname.reg.end))){ lagTerms.reg.end },
-				if(!(is.null(varname.reg.pre))){ lagTerms.reg.pre }, if(!(is.null(varname.reg.ex))){ lagTerms.reg.ex },
-				if(!(is.null(varname.reg.fur))){ lagTerms.reg.fur } )
-
- if(max.lagTerms < 1){
-   max.lagTerms <- 1
- }
+  if((use.mc.diff | use.mc.lev) && (length(unique(dat[, varname.t])) < 3)){
+    stop("Insufficient number of time periods to derive linear moment conditions.")
+  }
+  if(use.mc.nonlin && (length(unique(dat[, varname.t])) < 4)){
+    stop("Insufficient number of time periods to derive nonlinear moment conditions.")
+  }
 
 
 
- dat        <- as.data.frame(dat)
+  if(include.x && (is.null(varname.reg.end) & is.null(varname.reg.pre) & is.null(varname.reg.ex))
+  ){
+    #  assign(x = include.x, value = "FALSE", envir = pdynmc::pdynmc)
+    include.x		<- FALSE
+    warning("Covariates (and types) from which additional instruments should be derived not given; 'include.x' was therefore set to FALSE.")
+  }
+
+  if(!(include.x) && !(is.null(varname.reg.end) | is.null(varname.reg.pre) | is.null(varname.reg.ex))
+  ){
+    suppressWarnings(rm(varname.reg.end, varname.reg.pre, varname.reg.ex))
+    warning("Covariates (and types) specified, while no instruments are supposed to be derived from covariates; argument(s) specifying the name (and type) of covariates was therefore ignored.")
+  }
 
 
- if((use.mc.diff | use.mc.lev) && (length(unique(dat[, varname.t])) < 3)){
-   stop("Insufficient number of time periods to derive linear moment conditions.")
- }
- if(use.mc.nonlin && (length(unique(dat[, varname.t])) < 4)){
-   stop("Insufficient number of time periods to derive nonlinear moment conditions.")
- }
+  if(fur.con && is.null(varname.reg.fur)
+  ){
+    fur.con		  <- FALSE
+    fur.con.diff <- FALSE
+    fur.con.lev  <- FALSE
+    warning("No further controls given; 'fur.con' was therefore set to FALSE.")
+  }
+
+  if(!fur.con){
+    fur.con.diff <- FALSE
+    fur.con.lev <- FALSE
+  }
+
+  if(!(fur.con) && !(is.null(varname.reg.fur))
+  ){
+    suppressWarnings(rm(varname.reg.fur))
+    fur.con.diff <- FALSE
+    fur.con.lev  <- FALSE
+    warning("Further controls given, while further controls are not supposed to be included; argument specifying the further controls was therefore ignored.")
+  }
+
+  if(fur.con){
+    if((is.null(fur.con.diff) & is.null(fur.con.lev)) | (!fur.con.diff & !fur.con.lev)){
+      fur.con.diff		<- FALSE
+      fur.con.lev		<- TRUE
+      warning("Options 'fur.con.diff' and 'fur.con.lev' not specified; 'fur.con.lev' was therefore set to TRUE.")
+    }
+    if(fur.con.diff & is.null(fur.con.lev)){
+      fur.con.lev		<- FALSE
+      warning("Option 'fur.con.lev' not specified; option was therefore set to FALSE.")
+    }
+    if(fur.con.lev & is.null(fur.con.diff)){
+      fur.con.diff	<- FALSE
+      warning("Option 'fur.con.diff' not specified; option was therefore set to FALSE.")
+    }
+  }
+  if(!fur.con && !((is.null(fur.con.diff) & is.null(fur.con.lev)) | (is.null(fur.con.diff) | is.null(fur.con.lev))) ){
+    if(fur.con.diff){
+      fur.con.diff <- FALSE
+      warning("No further controls included; argument 'fur.con.diff' was therefore ignored.")
+    }
+    if(fur.con.lev){
+      fur.con.lev <- FALSE
+      warning("No further controls included; argument 'fur.con.lev' was therefore ignored.")
+    }
+  }
 
 
+  if( (instr.reg == 0) & (toInstr.reg == 1) ){
+    stop("No covariates given which should be used to instrument the endogenous covariate.")
+  }
 
- if(include.x && (is.null(varname.reg.end) & is.null(varname.reg.pre) & is.null(varname.reg.ex))
- ){
-   include.x		<- FALSE
-   warning("Covariates (and types) from which additional instruments should be derived not given; 'include.x' was therefore set to FALSE.")
- }
+  if(include.x.instr & is.null(varname.reg.instr)
+  ){
+    include.x.instr	<- FALSE
+    warning("No covariates given which should be used to derive instruments, while estimating no parameters for them; 'include.x.instr' was therefore set to FALSE.")
+  }
 
- if(!(include.x) && !(is.null(varname.reg.end) | is.null(varname.reg.pre) | is.null(varname.reg.ex))
- ){
-   suppressWarnings(rm(varname.reg.end, varname.reg.pre, varname.reg.ex))
-   warning("Covariates (and types) specified, while no instruments are supposed to be derived from covariates; argument(s) specifying the name (and type) of covariates was therefore ignored.")
- }
+  if(!(include.x.instr) & !(is.null(varname.reg.instr))
+  ){
+    suppressWarnings(rm(varname.reg.instr))
+    warning("Covariates to be used as instruments specified, while these types of covariates are not supposed to be included; argument specifying these instruments was therefore ignored.")
+  }
 
+  if(include.x.toInstr & is.null(varname.reg.toInstr)
+  ){
+    include.x.toInstr	<- FALSE
+    warning("No covariates given which should be instrumented; 'include.x.toInstr' was therefore set to FALSE.")
+  }
 
- if(fur.con && is.null(varname.reg.fur)
- ){
-   fur.con		  <- FALSE
-   fur.con.diff <- FALSE
-   fur.con.lev  <- FALSE
-   warning("No further controls given; 'fur.con' was therefore set to FALSE.")
- }
+  if(!(include.x.toInstr) & !(is.null(varname.reg.toInstr))
+  ){
+    suppressWarnings(rm(varname.reg.toInstr))
+    warning("Further covariates to be instrumented specified, while these types of covariates are not supposed to be included; argument specifying these covariates was therefore ignored.")
+  }
 
- if(!fur.con){
-   fur.con.diff <- FALSE
-   fur.con.lev <- FALSE
- }
+  if(inst.reg.ex.expand & !use.mc.diff & ( (!include.x.instr & is.null(varname.reg.ex)) | (is.null(varname.reg.ex)) ) ){
+    inst.reg.ex.expand <- NULL
+    #   warning("No exogenous covariates given; 'inst.reg.ex.expand' was therefore ignored.")
+  }
 
- if(!(fur.con) && !(is.null(varname.reg.fur))
- ){
-   suppressWarnings(rm(varname.reg.fur))
-   fur.con.diff <- FALSE
-   fur.con.lev  <- FALSE
-   warning("Further controls given, while further controls are not supposed to be included; argument specifying the further controls was therefore ignored.")
- }
+  if(include.dum && is.null(varname.dum)
+  ){
+    include.dum		<- FALSE
+    dum.diff       <- FALSE
+    dum.lev        <- FALSE
+    warning("No dummies given; 'include.dum' was therefore set to FALSE.")
+  }
 
- if(fur.con){
-   if((is.null(fur.con.diff) & is.null(fur.con.lev)) | (!fur.con.diff & !fur.con.lev)){
-     fur.con.diff		<- FALSE
-     fur.con.lev		<- TRUE
-     warning("Options 'fur.con.diff' and 'fur.con.lev' not specified; 'fur.con.lev' was therefore set to TRUE.")
-   }
-   if(fur.con.diff & is.null(fur.con.lev)){
-     fur.con.lev		<- FALSE
-     warning("Option 'fur.con.lev' not specified; option was therefore set to FALSE.")
-   }
-   if(fur.con.lev & is.null(fur.con.diff)){
-     fur.con.diff	<- FALSE
-     warning("Option 'fur.con.diff' not specified; option was therefore set to FALSE.")
-   }
- }
- if(!fur.con && !((is.null(fur.con.diff) & is.null(fur.con.lev)) | (is.null(fur.con.diff) | is.null(fur.con.lev))) ){
-   if(fur.con.diff){
-     fur.con.diff <- FALSE
-     warning("No further controls included; argument 'fur.con.diff' was therefore ignored.")
-   }
-   if(fur.con.lev){
-     fur.con.lev <- FALSE
-     warning("No further controls included; argument 'fur.con.lev' was therefore ignored.")
-   }
- }
+  if(!include.dum && !(is.null(varname.dum))
+  ){
+    suppressWarnings(rm(varname.dum))
+    dum.diff       <- FALSE
+    dum.lev        <- FALSE
+    warning("Dummies given, while dummies are not supposed to be included; argument specifying the dummies was therefore ignored.")
+  }
 
-
- if( (instr.reg == 0) & (toInstr.reg == 1) ){
-   stop("No covariates given which should be used to instrument the endogenous covariate.")
- }
-
- if(include.x.instr & is.null(varname.reg.instr)
- ){
-   include.x.instr	<- FALSE
-   warning("No covariates given which should be used to derive instruments, while estimating no parameters for them; 'include.x.instr' was therefore set to FALSE.")
- }
-
- if(!(include.x.instr) & !(is.null(varname.reg.instr))
- ){
-   suppressWarnings(rm(varname.reg.instr))
-   warning("Covariates to be used as instruments specified, while these types of covariates are not supposed to be included; argument specifying these instruments was therefore ignored.")
- }
-
- if(include.x.toInstr & is.null(varname.reg.toInstr)
- ){
-   include.x.toInstr	<- FALSE
-   warning("No covariates given which should be instrumented; 'include.x.toInstr' was therefore set to FALSE.")
- }
-
- if(!(include.x.toInstr) & !(is.null(varname.reg.toInstr))
- ){
-   suppressWarnings(rm(varname.reg.toInstr))
-   warning("Further covariates to be instrumented specified, while these types of covariates are not supposed to be included; argument specifying these covariates was therefore ignored.")
- }
-
- if(inst.reg.ex.expand & !use.mc.diff & ( (!include.x.instr & is.null(varname.reg.ex)) | (is.null(varname.reg.ex)) ) ){
-   inst.reg.ex.expand <- NULL
-#   warning("No exogenous covariates given; 'inst.reg.ex.expand' was therefore ignored.")
- }
-
- if(include.dum && is.null(varname.dum)
- ){
-   include.dum		<- FALSE
-   dum.diff       <- FALSE
-   dum.lev        <- FALSE
-   warning("No dummies given; 'include.dum' was therefore set to FALSE.")
- }
-
- if(!include.dum && !(is.null(varname.dum))
- ){
-   suppressWarnings(rm(varname.dum))
-   dum.diff       <- FALSE
-   dum.lev        <- FALSE
-   warning("Dummies given, while dummies are not supposed to be included; argument specifying the dummies was therefore ignored.")
- }
-
- if(include.dum){
-   if((is.null(dum.diff) & is.null(dum.lev)) | (!dum.diff & !dum.lev)){
-     dum.diff		<- FALSE
-     dum.lev		<- TRUE
-     warning("Options 'dum.diff' and 'dum.lev' not specified; 'dum.lev' was therefore set to TRUE.")
-   }
-   if(dum.diff & is.null(dum.lev)){
-     dum.lev		<- FALSE
-     warning("Option 'dum.lev' not specified; option was therefore set to FALSE.")
-   }
-   if(dum.lev & is.null(dum.diff)){
-     dum.diff	<- FALSE
-     warning("Option 'dum.diff' not specified; option was therefore set to FALSE.")
-   }
- }
- if(!include.dum &  (!is.null(dum.diff) | !is.null(dum.lev)) ){
-   if(!is.null(dum.diff)){
-     dum.diff <- FALSE
-     warning("No dummies included; argument 'dum.diff' was therefore ignored.")
-   }
-   if(!is.null(dum.lev)){
-     dum.lev <- FALSE
-     warning("No dummies included; argument 'dum.lev' was therefore ignored.")
-   }
- }
- if(!include.dum &  (is.null(dum.diff) | is.null(dum.lev)) ){
-   if(is.null(dum.diff)){
-     dum.diff <- FALSE
-   }
-   if(is.null(dum.lev)){
-     dum.lev <- FALSE
-   }
- }
+  if(include.dum){
+    if((is.null(dum.diff) & is.null(dum.lev)) | (!dum.diff & !dum.lev)){
+      dum.diff		<- FALSE
+      dum.lev		<- TRUE
+      warning("Options 'dum.diff' and 'dum.lev' not specified; 'dum.lev' was therefore set to TRUE.")
+    }
+    if(dum.diff & is.null(dum.lev)){
+      dum.lev		<- FALSE
+      warning("Option 'dum.lev' not specified; option was therefore set to FALSE.")
+    }
+    if(dum.lev & is.null(dum.diff)){
+      dum.diff	<- FALSE
+      warning("Option 'dum.diff' not specified; option was therefore set to FALSE.")
+    }
+  }
+  if(!include.dum &  (!is.null(dum.diff) | !is.null(dum.lev)) ){
+    if(!is.null(dum.diff)){
+      dum.diff <- FALSE
+      warning("No dummies included; argument 'dum.diff' was therefore ignored.")
+    }
+    if(!is.null(dum.lev)){
+      dum.lev <- FALSE
+      warning("No dummies included; argument 'dum.lev' was therefore ignored.")
+    }
+  }
+  if(!include.dum &  (is.null(dum.diff) | is.null(dum.lev)) ){
+    if(is.null(dum.diff)){
+      dum.diff <- FALSE
+    }
+    if(is.null(dum.lev)){
+      dum.lev <- FALSE
+    }
+  }
 
 
-
-
+# checkArgs(dat = dat, varname.t = varname.t,
+#          use.mc.diff, use.mc.lev, use.mc.nonlin,
+#          include.x, varname.reg.end, varname.reg.pre, varname.reg.ex,
+#          fur.con, varname.reg.fur, fur.con.diff, fur.con.lev,
+#          include.x.instr, include.x.toInstr, instr.reg, toInstr.reg, varname.reg.instr, varname.reg.toInstr, instr.reg.ex.expand,
+#          include.dum, varname.dum, dum.diff, dum.lev)
 
 
 # if((mc.ref.t && mc.ref.T) | (is.null(mc.ref.t) && is.null(mc.ref.T))		# [M:] check that only one reference period is set; else choose 'mc.ref.t'
@@ -665,17 +683,6 @@ pdynmc		<- function(
 #   mc.ref.T		<- FALSE
 #   warning("Only one of 'mc.ref.t' and 'mc.ref.T' is allowed to be TRUE; 'mc.ref.T' was therefore set to FALSE.")
 # }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -764,14 +771,15 @@ pdynmc		<- function(
    if(length(varname.dum) == 1){
      dat[, varname.dum]		<- as.character(dat[, varname.dum])
      form.dum.temp		<- stats::as.formula(paste(varname.y, paste(varname.dum, " -1", collapse = "+"), sep = " ~ "))
+     D.add	<- stats::model.matrix(form.dum.temp, data = dat)[,-1]
    } else{
      dat	<- cbind(dat[, !(colnames(dat) %in% varname.dum)], as.data.frame(lapply(dat, as.character), stringsAsFactors = FALSE)[, varname.dum])
      dat	<- dat[, colnames(dat)]
      form.dum.temp		<- stats::as.formula(paste(varname.y, paste(paste(varname.dum, collapse = "+"), "-1", sep = ""), sep = " ~ "))
+     D.add	<- stats::model.matrix(form.dum.temp, data = dat)
    }
 
 
-   D.add	<- stats::model.matrix(form.dum.temp, data = dat)[,-1]
 
    adjust.colnames.fct	<- function(
    j
@@ -779,8 +787,24 @@ pdynmc		<- function(
      cols.dum.temp		<- gsub(pattern = varname.dum[j], replacement = "", x = colnames(D.add)[grepl(pattern = varname.dum[j], x = colnames(D.add))])
    }
 
-   colnames.dum			<- Reduce(c, lapply(do.call(what = "c", args = list(sapply(1:length(varname.dum), FUN = adjust.colnames.fct))), FUN = c))
-   colnames.dum     <- unique(dat$t.label)[as.numeric(colnames.dum)]
+   for(i in 1:length(varname.dum)){
+     dum.tmp          <- varname.dum[i]
+     colnames.dum.tmp <- Reduce(c, lapply(do.call(what = "c", args = list(sapply(i, FUN = adjust.colnames.fct))), FUN = c))
+
+     if(i == 1){
+       if(dum.tmp == varname.t){
+         colnames.dum     <- unique(dat$t.label)[as.numeric(colnames.dum.tmp)]
+       } else{
+         colnames.dum     <- colnames.dum.tmp
+       }
+     } else{
+       if(dum.tmp == varname.t){
+         colnames.dum     <- c(colnames.dum, unique(dat$t.label)[as.numeric(colnames.dum.tmp)])
+       } else{
+         colnames.dum     <- c(colnames.dum, colnames.dum.tmp)
+       }
+     }
+   }
 
    colnames(D.add)		<- colnames.dum
 
@@ -793,7 +817,7 @@ pdynmc		<- function(
    dat.na[, colnames.dum]	<- D.add
 
    dat[is.na(dat.na[, varname.y]), !(colnames(dat) %in% c(varname.i, varname.t))]		<- 0
-   dat.na[is.na(dat.na[, varname.y]), !(colnames(dat) %in% c(varname.i, varname.t))]		<- NA
+   dat.na[is.na(dat.na[, varname.y]), !(colnames(dat) %in% c(varname.i, varname.t, colnames.dum))]		<- NA
 
 #   dat[is.na(dat.na[, varname.y]), !(colnames(dat) %in% c("i.label", "t.label"))]		<- 0
 #   dat.na[is.na(dat.na[, varname.y]), !(colnames(dat) %in% c("i.label", "t.label"))]		<- NA
@@ -898,77 +922,77 @@ pdynmc		<- function(
 
 
  if(include.x){
-#   if(!is.null(maxLags.reg.end)){
-#     try(if(length(maxLags.reg.end) != length(varname.reg.end)) stop("maximum number of lags of non-lagged-dependent endogenous covariates from which instruments should be derived needs to be specified completely"))
-#     if(any(maxLags.reg.end + 2 > Time)){
-#       maxLags.reg.end[maxLags.reg.end > Time-2]		<- Time - 2
-#       warning(paste(c("Longitudinal dimension too short. Maximum number of lags to obtain instruments from non-lagged-dependent endogenous covariates",
-#				"was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
-#     }
-#   }
-#   if(!is.null(varname.reg.end) & is.null(maxLags.reg.end)){
-#     maxLags.reg.end						<- rep(Time-2, times = length(varname.reg.end))
-#     warning(paste("Number of lags of the non-lagged dependent endogenous covariates from which instruments should be derived not specified. Number was set to ", Time-2, " (= Time-2) for the ", length(varname.reg.end), " endogenous covariates.", sep = ""))
-#   }
-#   if(!is.null(maxLags.reg.pre)){
-#     try(if(length(maxLags.reg.pre) != length(varname.reg.pre)) stop("maximum number of lags of non-lagged-dependent predetermined covariates from which instruments should be derived needs to be specified completely."))
-#     if(any(maxLags.reg.pre + 1 > Time)){
-#       maxLags.reg.pre[maxLags.reg.pre > Time-1]		<- Time - 1
-#       warning(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent predetermined covariates",
-#                       "was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
-#     }
-#   }
-#   if(!is.null(varname.reg.pre) & is.null(maxLags.reg.pre)){
-#     maxLags.reg.pre						<- rep(Time-1, times = length(varname.reg.pre))
-#     warning(paste("Number of lags of non-lagged dependent predetermined covariates from which instruments should be derived not specified (completely).",
-#                   "Number was set to ", Time-1, " (= Time-1) for the ", length(varname.reg.pre), " predetermined covariates.", sep = "\n") )
-#   }
-#   if(!is.null(maxLags.reg.ex)){
-#     try(if(length(maxLags.reg.ex) != length(varname.reg.ex)) stop("maximum number of lags of non-lagged-dependent exogenous covariates from which instruments should be derived needs to be specified completely"))
-#     if(any(maxLags.reg.ex > Time)){
-#       maxLags.reg.ex[maxLags.reg.ex > Time]		<- Time					# [M:] only required for HNR m.c. (from equations in differences)
-#       warning(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent exogenous covariates",
-#                       "was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
-#     }
-#   }
-#   if(!is.null(varname.reg.ex) & is.null(maxLags.reg.ex)){
-#     maxLags.reg.ex						<- rep(Time, times = length(varname.reg.ex))
-#     warning(paste("Number of lags of non-lagged dependent exogenous covariates from which instruments should be derived not specified.",
-#                   "Number was set to ", Time, " (= Time) for the ", length(varname.reg.ex), " exogenous covariates.", sep = "\n") )
-#   }
-   if(!is.null(varname.reg.end)){
-     if(length(maxLags.reg.end) != length(varname.reg.end)){
-       maxLags.reg.end		<- rep(Time - 2, times = length(varname.reg.end))
-       warning(paste("Number of lags of the non-lagged dependent endogenous covariates from which instruments should be derived not specified (completely). Number was set to ", Time-2, " (= Time-2) for the ", length(varname.reg.end), " endogenous covariates.", sep = ""))
-     }
+   if(!is.null(maxLags.reg.end)){
+     try(if(length(maxLags.reg.end) != length(varname.reg.end)) stop("maximum number of lags of non-lagged-dependent endogenous covariates from which instruments should be derived needs to be specified completely"))
      if(any(maxLags.reg.end + 2 > Time)){
        maxLags.reg.end[maxLags.reg.end > Time-2]		<- Time - 2
        warning(paste(c("Longitudinal dimension too short. Maximum number of lags to obtain instruments from non-lagged-dependent endogenous covariates",
-                       "was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
+				"was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
      }
    }
-   if(!is.null(varname.reg.pre)){
-     if(length(maxLags.reg.pre) != length(varname.reg.pre)){
-       maxLags.reg.pre		<- rep(Time-1, times = length(varname.reg.pre))
-       warning(paste("Number of lags of the non-lagged dependent predetermined covariates from which instruments should be derived not specified (completely). Number was set to ", Time-1, " (= Time-1) for the ", length(varname.reg.pre), " predetermined covariates.", sep = ""))
-     }
+   if(!is.null(varname.reg.end) & is.null(maxLags.reg.end)){
+     maxLags.reg.end						<- rep(Time-2, times = length(varname.reg.end))
+     warning(paste("Number of lags of the non-lagged dependent endogenous covariates from which instruments should be derived not specified. Number was set to ", Time-2, " (= Time-2) for the ", length(varname.reg.end), " endogenous covariates.", sep = ""))
+   }
+   if(!is.null(maxLags.reg.pre)){
+     try(if(length(maxLags.reg.pre) != length(varname.reg.pre)) stop("maximum number of lags of non-lagged-dependent predetermined covariates from which instruments should be derived needs to be specified completely."))
      if(any(maxLags.reg.pre + 1 > Time)){
        maxLags.reg.pre[maxLags.reg.pre > Time-1]		<- Time - 1
        warning(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent predetermined covariates",
-				"was reduced to ", Time-1, " (= Time-1)."), sep = "\n") )
+                       "was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
      }
    }
+   if(!is.null(varname.reg.pre) & is.null(maxLags.reg.pre)){
+     maxLags.reg.pre						<- rep(Time-1, times = length(varname.reg.pre))
+     warning(paste("Number of lags of non-lagged dependent predetermined covariates from which instruments should be derived not specified (completely).",
+                   "Number was set to ", Time-1, " (= Time-1) for the ", length(varname.reg.pre), " predetermined covariates.", sep = "\n") )
+   }
    if(!is.null(maxLags.reg.ex)){
-     if(length(maxLags.reg.ex) != length(varname.reg.ex)){
-       maxLags.reg.ex		<- rep(Time, times = length(varname.reg.ex))
-       warning(paste("Number of lags of the non-lagged dependent exogenous covariates from which instruments should be derived not specified (completely). Number was set to ", Time, " (= Time) for the ", length(varname.reg.ex), " exogenous covariates.", sep = ""))
-     }
+     try(if(length(maxLags.reg.ex) != length(varname.reg.ex)) stop("maximum number of lags of non-lagged-dependent exogenous covariates from which instruments should be derived needs to be specified completely"))
      if(any(maxLags.reg.ex > Time)){
        maxLags.reg.ex[maxLags.reg.ex > Time]		<- Time					# [M:] only required for HNR m.c. (from equations in differences)
        warning(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent exogenous covariates",
-				"was reduced to ", Time, " (= Time)."), sep = "\n") )
+                       "was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
      }
    }
+   if(!is.null(varname.reg.ex) & is.null(maxLags.reg.ex)){
+     maxLags.reg.ex						<- rep(Time, times = length(varname.reg.ex))
+     warning(paste("Number of lags of non-lagged dependent exogenous covariates from which instruments should be derived not specified.",
+                   "Number was set to ", Time, " (= Time) for the ", length(varname.reg.ex), " exogenous covariates.", sep = "\n") )
+   }
+#   if(!is.null(varname.reg.end)){
+#     if(length(maxLags.reg.end) != length(varname.reg.end)){
+#       maxLags.reg.end		<- rep(Time - 2, times = length(varname.reg.end))
+#       warning(paste("Number of lags of the non-lagged dependent endogenous covariates from which instruments should be derived not specified (completely). Number was set to ", Time-2, " (= Time-2) for the ", length(varname.reg.end), " endogenous covariates.", sep = ""))
+#     }
+#     if(any(maxLags.reg.end + 2 > Time)){
+#       maxLags.reg.end[maxLags.reg.end > Time-2]		<- Time - 2
+#       warning(paste(c("Longitudinal dimension too short. Maximum number of lags to obtain instruments from non-lagged-dependent endogenous covariates",
+#                       "was reduced to ", Time-2, " (= Time-2)."), sep = "\n") )
+#     }
+#   }
+#   if(!is.null(varname.reg.pre)){
+#     if(length(maxLags.reg.pre) != length(varname.reg.pre)){
+#       maxLags.reg.pre		<- rep(Time-1, times = length(varname.reg.pre))
+#       warning(paste("Number of lags of the non-lagged dependent predetermined covariates from which instruments should be derived not specified (completely). Number was set to ", Time-1, " (= Time-1) for the ", length(varname.reg.pre), " predetermined covariates.", sep = ""))
+#     }
+#     if(any(maxLags.reg.pre + 1 > Time)){
+#       maxLags.reg.pre[maxLags.reg.pre > Time-1]		<- Time - 1
+#       warning(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent predetermined covariates",
+#				"was reduced to ", Time-1, " (= Time-1)."), sep = "\n") )
+#     }
+#   }
+#   if(!is.null(maxLags.reg.ex)){
+#     if(length(maxLags.reg.ex) != length(varname.reg.ex)){
+#       maxLags.reg.ex		<- rep(Time, times = length(varname.reg.ex))
+#       warning(paste("Number of lags of the non-lagged dependent exogenous covariates from which instruments should be derived not specified (completely). Number was set to ", Time, " (= Time) for the ", length(varname.reg.ex), " exogenous covariates.", sep = ""))
+#     }
+#     if(any(maxLags.reg.ex > Time)){
+#       maxLags.reg.ex[maxLags.reg.ex > Time]		<- Time					# [M:] only required for HNR m.c. (from equations in differences)
+#       warning(paste(c("Longitudinal dimension too low. Maximum number of lags to obtain instruments from non-lagged-dependent exogenous covariates",
+#				"was reduced to ", Time, " (= Time)."), sep = "\n") )
+#     }
+#   }
  }
 
 
@@ -1042,34 +1066,34 @@ pdynmc		<- function(
 
 
  varname.expand	<- function(
-  varname
-  ,lagTerms
+    varname
+    ,lagTerms
  ){
-  if(varname == varname.y){
+   if(varname == varname.y){
      varname.reg.est.temp		<- paste("L", 1:lagTerms, ".", rep(varname, times = lagTerms), sep = "")
-    } else{
+   } else{
      varname.reg.est.temp		<- paste("L", c(0:lagTerms), ".", rep(varname, times = lagTerms+1), sep = "")
    }
-  return(varname.reg.est.temp)
+   return(varname.reg.est.temp)
  }
 
 
  dat.na.lag		<- function(
-  i
-  ,varname
-  ,lagTerms
+    i
+    ,varname
+    ,lagTerms
  ){
-  dat.na.lag.temp				<- data.table::shift(dat.na[dat.na[, varname.i] == i, varname], n = lagTerms, type = "lag")
-  return(dat.na.lag.temp)
+   dat.na.lag.temp				<- data.table::shift(dat.na[dat.na[, varname.i] == i, varname], n = lagTerms, type = "lag")
+   return(dat.na.lag.temp)
  }
 
 
  lag.expand		<- function(
-  lagTerms
-  ,varname
+    lagTerms
+    ,varname
  ){
    if(varname == varname.y){
-       lag.structure.temp			<- c(1:lagTerms)
+     lag.structure.temp			<- c(1:lagTerms)
    } else{
      lag.structure.temp			<- c(0:lagTerms)
    }
@@ -1225,7 +1249,7 @@ pdynmc		<- function(
  Z.obj		<- lapply(X = i_cases, FUN = Z_i.fct, Time = Time, varname.i = varname.i
 #					, mc.ref.t = mc.ref.t
 					,use.mc.diff = use.mc.diff, use.mc.lev = use.mc.lev, use.mc.nonlin = use.mc.nonlin, use.mc.nonlinAS = use.mc.nonlinAS
-					,include.y = include.y, varname.y = varname.y, inst.stata = inst.stata
+					,include.y = include.y, varname.y = varname.y, inst.collapse = inst.collapse, inst.stata = inst.stata
 					,include.dum = include.dum, dum.diff = dum.diff, dum.lev = dum.lev, colnames.dum = colnames.dum
 					,fur.con = fur.con, fur.con.diff = fur.con.diff, fur.con.lev = fur.con.lev, varname.reg.estParam.fur = varname.reg.estParam.fur
    				,include.x = include.x, end.reg = end.reg, varname.reg.end = varname.reg.end, pre.reg = pre.reg, varname.reg.pre = varname.reg.pre, ex.reg = ex.reg, varname.reg.ex = varname.reg.ex

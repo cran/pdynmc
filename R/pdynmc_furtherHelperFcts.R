@@ -1017,6 +1017,256 @@ dat.expand.fct		<- function(
 
 
 
+###
+### Helper function to check arguments of estimation function
+###
+
+if(FALSE){
+
+#' @keywords internal
+#'
+checkArgs		<- function(
+    dat
+    ,varname.t
+    ,use.mc.diff
+    ,use.mc.lev
+    ,use.mc.nonlin
+    ,include.x
+    ,varname.reg.end
+    ,varname.reg.pre
+    ,varname.reg.ex
+    ,fur.con
+    ,varname.reg.fur
+    ,fur.con.diff
+    ,fur.con.lev
+    ,include.x.instr
+    ,include.x.toInstr
+    ,instr.reg
+    ,toInstr.reg
+    ,varname.reg.instr
+    ,varname.reg.toInstr
+    ,instr.reg.ex.expand
+    ,include.dum
+    ,varname.dum
+    ,dum.diff
+    ,dum.lev
+){
+
+ if((use.mc.diff | use.mc.lev) && (length(unique(dat[, varname.t])) < 3)){
+   stop("Insufficient number of time periods to derive linear moment conditions.")
+ }
+ if(use.mc.nonlin && (length(unique(dat[, varname.t])) < 4)){
+   stop("Insufficient number of time periods to derive nonlinear moment conditions.")
+ }
+
+
+
+ if(include.x && (is.null(varname.reg.end) & is.null(varname.reg.pre) & is.null(varname.reg.ex))
+ ){
+ #  assign(x = include.x, value = "FALSE", envir = pdynmc::pdynmc)
+   include.x		<- FALSE
+   warning("Covariates (and types) from which additional instruments should be derived not given; 'include.x' was therefore set to FALSE.")
+ }
+
+ if(!(include.x) && !(is.null(varname.reg.end) | is.null(varname.reg.pre) | is.null(varname.reg.ex))
+ ){
+   suppressWarnings(rm(varname.reg.end, varname.reg.pre, varname.reg.ex))
+   warning("Covariates (and types) specified, while no instruments are supposed to be derived from covariates; argument(s) specifying the name (and type) of covariates was therefore ignored.")
+ }
+
+
+ if(fur.con && is.null(varname.reg.fur)
+ ){
+   fur.con		  <- FALSE
+   fur.con.diff <- FALSE
+   fur.con.lev  <- FALSE
+   warning("No further controls given; 'fur.con' was therefore set to FALSE.")
+ }
+
+ if(!fur.con){
+   fur.con.diff <- FALSE
+   fur.con.lev <- FALSE
+ }
+
+ if(!(fur.con) && !(is.null(varname.reg.fur))
+ ){
+   suppressWarnings(rm(varname.reg.fur))
+   fur.con.diff <- FALSE
+   fur.con.lev  <- FALSE
+   warning("Further controls given, while further controls are not supposed to be included; argument specifying the further controls was therefore ignored.")
+ }
+
+ if(fur.con){
+   if((is.null(fur.con.diff) & is.null(fur.con.lev)) | (!fur.con.diff & !fur.con.lev)){
+     fur.con.diff		<- FALSE
+     fur.con.lev		<- TRUE
+     warning("Options 'fur.con.diff' and 'fur.con.lev' not specified; 'fur.con.lev' was therefore set to TRUE.")
+   }
+   if(fur.con.diff & is.null(fur.con.lev)){
+     fur.con.lev		<- FALSE
+     warning("Option 'fur.con.lev' not specified; option was therefore set to FALSE.")
+   }
+   if(fur.con.lev & is.null(fur.con.diff)){
+     fur.con.diff	<- FALSE
+     warning("Option 'fur.con.diff' not specified; option was therefore set to FALSE.")
+   }
+ }
+ if(!fur.con && !((is.null(fur.con.diff) & is.null(fur.con.lev)) | (is.null(fur.con.diff) | is.null(fur.con.lev))) ){
+   if(fur.con.diff){
+     fur.con.diff <- FALSE
+     warning("No further controls included; argument 'fur.con.diff' was therefore ignored.")
+   }
+   if(fur.con.lev){
+     fur.con.lev <- FALSE
+     warning("No further controls included; argument 'fur.con.lev' was therefore ignored.")
+   }
+ }
+
+
+ if( (instr.reg == 0) & (toInstr.reg == 1) ){
+   stop("No covariates given which should be used to instrument the endogenous covariate.")
+ }
+
+ if(include.x.instr & is.null(varname.reg.instr)
+ ){
+   include.x.instr	<- FALSE
+   warning("No covariates given which should be used to derive instruments, while estimating no parameters for them; 'include.x.instr' was therefore set to FALSE.")
+ }
+
+ if(!(include.x.instr) & !(is.null(varname.reg.instr))
+ ){
+   suppressWarnings(rm(varname.reg.instr))
+   warning("Covariates to be used as instruments specified, while these types of covariates are not supposed to be included; argument specifying these instruments was therefore ignored.")
+ }
+
+ if(include.x.toInstr & is.null(varname.reg.toInstr)
+ ){
+   include.x.toInstr	<- FALSE
+   warning("No covariates given which should be instrumented; 'include.x.toInstr' was therefore set to FALSE.")
+ }
+
+ if(!(include.x.toInstr) & !(is.null(varname.reg.toInstr))
+ ){
+   suppressWarnings(rm(varname.reg.toInstr))
+   warning("Further covariates to be instrumented specified, while these types of covariates are not supposed to be included; argument specifying these covariates was therefore ignored.")
+ }
+
+ if(inst.reg.ex.expand & !use.mc.diff & ( (!include.x.instr & is.null(varname.reg.ex)) | (is.null(varname.reg.ex)) ) ){
+   inst.reg.ex.expand <- NULL
+  #   warning("No exogenous covariates given; 'inst.reg.ex.expand' was therefore ignored.")
+ }
+
+ if(include.dum && is.null(varname.dum)
+ ){
+   include.dum		<- FALSE
+   dum.diff       <- FALSE
+   dum.lev        <- FALSE
+   warning("No dummies given; 'include.dum' was therefore set to FALSE.")
+ }
+
+ if(!include.dum && !(is.null(varname.dum))
+ ){
+   suppressWarnings(rm(varname.dum))
+   dum.diff       <- FALSE
+   dum.lev        <- FALSE
+   warning("Dummies given, while dummies are not supposed to be included; argument specifying the dummies was therefore ignored.")
+ }
+
+ if(include.dum){
+   if((is.null(dum.diff) & is.null(dum.lev)) | (!dum.diff & !dum.lev)){
+     dum.diff		<- FALSE
+     dum.lev		<- TRUE
+     warning("Options 'dum.diff' and 'dum.lev' not specified; 'dum.lev' was therefore set to TRUE.")
+   }
+   if(dum.diff & is.null(dum.lev)){
+     dum.lev		<- FALSE
+     warning("Option 'dum.lev' not specified; option was therefore set to FALSE.")
+   }
+   if(dum.lev & is.null(dum.diff)){
+     dum.diff	<- FALSE
+     warning("Option 'dum.diff' not specified; option was therefore set to FALSE.")
+   }
+ }
+ if(!include.dum &  (!is.null(dum.diff) | !is.null(dum.lev)) ){
+   if(!is.null(dum.diff)){
+     dum.diff <- FALSE
+     warning("No dummies included; argument 'dum.diff' was therefore ignored.")
+   }
+   if(!is.null(dum.lev)){
+     dum.lev <- FALSE
+     warning("No dummies included; argument 'dum.lev' was therefore ignored.")
+   }
+ }
+ if(!include.dum &  (is.null(dum.diff) | is.null(dum.lev)) ){
+   if(is.null(dum.diff)){
+     dum.diff <- FALSE
+   }
+   if(is.null(dum.lev)){
+     dum.lev <- FALSE
+   }
+ }
+
+}
+
+}
+
+
+
+
+
+###
+### Helper functions for expanding lag structure and dataset
+###
+
+
+if(FALSE){
+
+#' @keywords internal
+#'
+varname.expand	<- function(
+    varname
+    ,lagTerms
+){
+  if(varname == varname.y){
+    varname.reg.est.temp		<- paste("L", 1:lagTerms, ".", rep(varname, times = lagTerms), sep = "")
+  } else{
+    varname.reg.est.temp		<- paste("L", c(0:lagTerms), ".", rep(varname, times = lagTerms+1), sep = "")
+  }
+  return(varname.reg.est.temp)
+}
+
+
+#' @keywords internal
+#'
+#' @importFrom data.table shift
+dat.na.lag		<- function(
+    i
+    ,varname
+    ,lagTerms
+){
+  dat.na.lag.temp				<- data.table::shift(dat.na[dat.na[, varname.i] == i, varname], n = lagTerms, type = "lag")
+  return(dat.na.lag.temp)
+}
+
+
+#' @keywords internal
+#'
+lag.expand		<- function(
+    lagTerms
+    ,varname
+){
+  if(varname == varname.y){
+    lag.structure.temp			<- c(1:lagTerms)
+  } else{
+    lag.structure.temp			<- c(0:lagTerms)
+  }
+  return(lag.structure.temp)
+}
+
+}
+
+
+
 
 
 
@@ -1027,25 +1277,29 @@ dat.expand.fct		<- function(
 
 #' @keywords internal
 #'
+#' @importFrom Matrix colMeans
+#' @importFrom Matrix colSums
+#' @importFrom Matrix crossprod
+#' @importFrom Matrix tcrossprod
 #' @importFrom methods as
-corSparse <- function(X, Y = NULL, cov = FALSE) {
+corSparse <- function(X, Y = NULL, cov = FALSE){
 
   X <- methods::as(X,"dgCMatrix")
   n <- nrow(X)
-  muX <- colMeans(X)
+  muX <- Matrix::colMeans(X)
 
   if (!is.null(Y)) {
     stopifnot( nrow(X) == nrow(Y) )
     Y <- methods::as(Y,"dgCMatrix")
-    muY <- colMeans(Y)
-    covmat <- ( as.matrix(crossprod(X,Y)) - n*tcrossprod(muX,muY) ) / (n-1)
-    sdvecX <- sqrt( (colSums(X^2) - n*muX^2) / (n-1) )
-    sdvecY <- sqrt( (colSums(Y^2) - n*muY^2) / (n-1) )
-    cormat <- covmat/tcrossprod(sdvecX,sdvecY)
+    muY <- Matrix::colMeans(Y)
+    covmat <- ( as.matrix(Matrix::crossprod(X,Y)) - n*Matrix::tcrossprod(muX,muY) ) / (n-1)
+    sdvecX <- sqrt( (Matrix::colSums(X^2) - n*muX^2) / (n-1) )
+    sdvecY <- sqrt( (Matrix::colSums(Y^2) - n*muY^2) / (n-1) )
+    cormat <- covmat/Matrix::tcrossprod(sdvecX,sdvecY)
   } else {
-    covmat <- ( as.matrix(crossprod(X)) - n*tcrossprod(muX) ) / (n-1)
+    covmat <- ( as.matrix(Matrix::crossprod(X)) - n*Matrix::tcrossprod(muX) ) / (n-1)
     sdvec <- sqrt(diag(covmat))
-    cormat <- covmat/tcrossprod(sdvec)
+    cormat <- covmat/Matrix::tcrossprod(sdvec)
   }
 
   if (cov) {
