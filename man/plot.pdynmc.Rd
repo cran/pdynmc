@@ -25,7 +25,9 @@
 twostep or iterative GMM estimates.}
 
 \item{type}{Whether to plot fitted values against residuals (argument
-'fire'; default), coefficient ranges (argument 'coef.range';
+'fire'; default), first differenced fitted values against
+first differenced residuals (argument 'fire.fd'),
+coefficient ranges (argument 'coef.range';
 this requires twostep or iterative GMM estimates), path of
 coefficient estimates across GMM iterations (argument 'coef.path';
 this requires twostep or iterative GMM estimates).}
@@ -46,11 +48,11 @@ estimates (defaults to 'darkgrey'; requires 'type = coef.range').}
 (defaults to 'royalblue'; requires 'type = coef.range').}
 
 \item{omit1step}{Omit coefficient estimates from one-step GMM
-estimation in coefficient range plot. The argument can after
-obtaining coefficient estimates from numerical optimization
-methods to exclude the randomly drawn starting values from the
-plotted coefficient range (defaults to `FALSE`). Set to `TRUE` to
-exert the option; this argument requires iterative GMM estimates
+estimation in coefficient range plot. The argument can be employed
+to exclude the randomly drawn starting values from the plotted
+coefficient range when coefficient estimates were obtained from
+numerical optimization methods (defaults to `FALSE`). Set to `TRUE`
+to exert the option; this argument requires iterative GMM estimates
 and argument 'type = coef.range'.}
 
 \item{boxplot.coef}{Whether to draw boxplots for coefficient estimates

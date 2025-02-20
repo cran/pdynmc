@@ -1,3 +1,34 @@
+# pdynmc version 0.9.12.9008
+
+Update of version 0.9.11 that includes some suggestions on code improvements of Kevin Tappe (github user tappek) and corrects computation of the onestep unadjusted standard errors and the serial correlation test statistic. Adjustments to the instrument counts were also made following pointers by Steve Bond. Additionally, the `sargan.fct` was added which computes the sargan test statistic for the overidentifying restrictions.
+
+### pdynmc
+* adjust computation of onestep unadjusted standard errors
+* add checks of input arguments
+* remove redundant parts of code
+* adjust function documentation and correct typos
+
+### mtest.fct
+* correct bugs in computation of the test statistic
+
+### wald.fct
+* remove redundant parts of code
+
+### sargan.fct
+* added to package for computing sargan test statistic
+
+### jtest.fct
+* warning message for non-spherical error terms added
+
+### plot.pdynmc
+* adjust function documentation
+* add further option for `fire`-plot
+
+### Z_i.fct
+* safeguard instrument count in internal helper function for the case when there are columns with zeros only
+
+
+
 # pdynmc version 0.9.11
 
 Update of version 0.9.10 that adds three estimation functions for the lag parameter of AR(1) panel data models. Additionally, the update allows for user-specified dummy matrix in estimation function. For this purpose, the internal helper function `corSparse` which was adopted from package 'qlcMatrix' in a previous function update was adjusted. Additionally, the argument checks of the estimation function were updated and an option to collapse the moment conditions was added.

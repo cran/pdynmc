@@ -199,22 +199,22 @@ be derived (can be different from varname.t; defaults to `NULL`).}
 threshold for collinearity checks (columns are omitted when pairwise
 correlations are above the threshold; defaults to 0.65).}
 
-\item{w.mat}{One of the character strings c(`"iid.err"`, `"identity"`,
-`"zero.cov"`) indicating the type of weighting matrix to use (defaults to
+\item{w.mat}{One of the characters `"iid.err"`, `"identity"`,
+`"zero.cov"` indicating the type of weighting matrix to use (defaults to
 `"iid.err"`).}
 
 \item{w.mat.stata}{A logical variable that slightly adjusts the weighting
 matrix according to the Stata function xtdpdgmm (defaults to `FALSE`).}
 
-\item{std.err}{One of the character strings c(`"corrected"`, `"unadjusted"`,
- `"dbl.corrected"`).
+\item{std.err}{One of the character `"corrected"`, `"unadjusted"`,
+ `"dbl.corrected"`.
  The second and third options compute corrected standard error according
  to \insertCite{Win2005;textual}{pdynmc} and
  \insertCite{HwangKangLee2020;textual}{pdynmc}, respectively
 (defaults to `"corrected"`).}
 
-\item{estimation}{One of the character strings c(`"onestep"`, `"twostep"`,
-`"iterative"`). Denotes the number of iterations of the parameter procedure
+\item{estimation}{One of the characters `"onestep"`, `"twostep"`,
+`"iterative"`. Denotes the number of iterations of the parameter procedure
 (defaults to `"twostep"`).}
 
 \item{max.iter}{An integer indicating the maximum number of iterations
@@ -312,7 +312,7 @@ The function estimates a linear dynamic panel data model of the form
    \eqn{\varepsilon_{i,t}} is an idiosyncratic remainder component. The
    model structure accounts for unobserved individual specific heterogeneity
    and dynamics. Note that the specification given above is simplified for
-   illustatory purposes and more general lag structures are allowed in
+   illustratory purposes and more general lag structures are allowed in
    \code{pdynmc}.
 
    Estimation of the model parameters in \code{pdynmc} is based on
